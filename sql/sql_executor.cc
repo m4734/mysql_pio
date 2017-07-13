@@ -38,6 +38,10 @@
 #include "sql_tmp_table.h"    // create_tmp_table
 #include "json_dom.h"    // Json_wrapper
 
+//cgmin
+#include <sys/time.h>
+
+
 #include <algorithm>
 using std::max;
 using std::min;
@@ -1262,9 +1266,17 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
   const bool pfs_batch_update= qep_tab->pfs_batch_update(join);
   if (pfs_batch_update)
     qep_tab->table()->file->start_psi_batch_mode();
+
+//cgmin
+struct timeval ttt,ttt2;
+
   while (rc == NESTED_LOOP_OK && join->return_tab >= qep_tab_idx)
   {
     int error;
+
+//cgmin
+gettimeofday(&ttt,NULL);
+
     if (in_first_read)
     {
       in_first_read= false;
@@ -1272,6 +1284,10 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
     }
     else
       error= info->read_record(info);
+
+//cgmin
+gettimeofday(&ttt2,NULL);
+DBUG_PRINT("cgmin",("read_record %ld --- %ld:%ld-%ld:%ld",(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec),ttt2.tv_sec,ttt2.tv_usec,ttt.tv_sec,ttt.tv_usec));
 
     DBUG_EXECUTE_IF("bug13822652_1", join->thd->killed= THD::KILL_QUERY;);
 
@@ -1290,6 +1306,11 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
         qep_tab->table()->file->position(qep_tab->table()->record[0]);
       rc= evaluate_join_record(join, qep_tab);
     }
+
+//cgmin
+gettimeofday(&ttt,NULL);
+DBUG_PRINT("cgmin",("evaluate_join_record %ld --- %ld:%ld-%ld:%ld",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec),ttt.tv_sec,ttt.tv_usec,ttt2.tv_sec,ttt2.tv_usec));
+
   }
 
   if (rc == NESTED_LOOP_OK &&

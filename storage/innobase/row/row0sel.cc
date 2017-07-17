@@ -3949,9 +3949,6 @@ row_sel_try_search_shortcut_for_mysql(
 	trx_t*		trx		= prebuilt->trx;
 	const rec_t*	rec;
 
-//cgmin
-DBUG_ENTER("cgmin row_sel_try_search_shortcut_for_mysql");
-
 	ut_ad(dict_index_is_clust(index));
 	ut_ad(!prebuilt->templ_contains_blob);
 
@@ -3965,7 +3962,6 @@ DBUG_ENTER("cgmin row_sel_try_search_shortcut_for_mysql");
 
 	if (!page_rec_is_user_rec(rec)) {
 
-DBUG_RETURN(SEL_RETRY);
 		return(SEL_RETRY);
 	}
 
@@ -3975,7 +3971,6 @@ DBUG_RETURN(SEL_RETRY);
 
 	if (btr_pcur_get_up_match(pcur) < dtuple_get_n_fields(search_tuple)) {
 
-DBUG_RETURN(SEL_EXHAUSTED);
 		return(SEL_EXHAUSTED);
 	}
 
@@ -3988,20 +3983,17 @@ DBUG_RETURN(SEL_EXHAUSTED);
 	if (!lock_clust_rec_cons_read_sees(
 			rec, index, *offsets, trx_get_read_view(trx))) {
 
-DBUG_RETURN(SEL_RETRY);
 		return(SEL_RETRY);
 	}
 
 	if (rec_get_deleted_flag(rec, dict_table_is_comp(index->table))) {
 
 
-DBUG_RETURN(SEL_EXHAUSTED);
 		return(SEL_EXHAUSTED);
 	}
 
 	*out_rec = rec;
 
-DBUG_RETURN(SEL_FOUND);
 	return(SEL_FOUND);
 }
 
@@ -4567,9 +4559,6 @@ row_search_mvcc(
 	/* PHASE 0: Release a possible s-latch we are holding on the
 	adaptive hash index latch if there is someone waiting behind */
 
-//cgmin
-DBUG_PRINT("cgmin",("p0"));
-
 	if (trx->has_search_latch
 #ifndef INNODB_RW_LOCKS_USE_ATOMICS
 	    && rw_lock_get_writer(
@@ -4593,9 +4582,6 @@ DBUG_PRINT("cgmin",("p0"));
 
 	/*-------------------------------------------------------------*/
 	/* PHASE 1: Try to pop the row from the prefetch cache */
-
-//cgmin
-DBUG_PRINT("cgmin",("p1"));
 
 	if (UNIV_UNLIKELY(direction == 0)) {
 		trx->op_info = "starting index read";
@@ -4707,9 +4693,6 @@ DBUG_PRINT("cgmin",("p1"));
 
 	/*-------------------------------------------------------------*/
 	/* PHASE 2: Try fast adaptive hash index search if possible */
-
-//cgmin
-DBUG_PRINT("cgmin",("p2"));
 
 	/* Next test if this is the special case where we can use the fast
 	adaptive hash index to try the search. Since we must release the
@@ -4835,9 +4818,6 @@ DBUG_PRINT("cgmin",("p2"));
 
 	/*-------------------------------------------------------------*/
 	/* PHASE 3: Open or restore index cursor position */
-
-//cgmin
-DBUG_PRINT("cgmin",("p3"));
 
 	trx_search_latch_release_if_reserved(trx);
 
@@ -5050,9 +5030,6 @@ rec_loop:
 
 	/*-------------------------------------------------------------*/
 	/* PHASE 4: Look for matching records in a loop */
-
-//cgmin
-DBUG_PRINT("cgmin",("p4"));
 
 	rec = btr_pcur_get_rec(pcur);
 
@@ -5846,9 +5823,6 @@ next_rec:
 
 	/*-------------------------------------------------------------*/
 	/* PHASE 5: Move the cursor to the next index record */
-
-//cgmin
-DBUG_PRINT("cgmin",("p5"));
 
 	/* NOTE: For moves_up==FALSE, the mini-transaction will be
 	committed and restarted every time when switching b-tree

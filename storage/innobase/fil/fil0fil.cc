@@ -5472,10 +5472,6 @@ fil_io(
 	void*			message)
 {
 
-//cgmin
-DBUG_ENTER("cgmin fil_io");
-
-
 	os_offset_t		offset;
 	IORequest		req_type(type);
 
@@ -5570,7 +5566,6 @@ DBUG_ENTER("cgmin fil_io");
 				<< ", I/O length: " << len << " bytes";
 		}
 
-DBUG_RETURN(DB_TABLESPACE_DELETED);
 		return(DB_TABLESPACE_DELETED);
 	}
 
@@ -5586,7 +5581,6 @@ DBUG_RETURN(DB_TABLESPACE_DELETED);
 			if (req_type.ignore_missing()) {
 				mutex_exit(&fil_system->mutex);
 
-DBUG_RETURN(DB_ERROR);
 				return(DB_ERROR);
 			}
 
@@ -5619,7 +5613,6 @@ DBUG_RETURN(DB_ERROR);
 				happened during a truncation */
 				mutex_exit(&fil_system->mutex);
 
-DBUG_RETURN(DB_TABLESPACE_TRUNCATED);
 				return(DB_TABLESPACE_TRUNCATED);
 			}
 
@@ -5648,7 +5641,6 @@ DBUG_RETURN(DB_TABLESPACE_TRUNCATED);
 					<< ", I/O length: " << len << " bytes";
 			}
 
-DBUG_RETURN(DB_TABLESPACE_DELETED);
 			return(DB_TABLESPACE_DELETED);
 		}
 
@@ -5672,7 +5664,6 @@ DBUG_RETURN(DB_TABLESPACE_DELETED);
 			fil_node_complete_io(node, fil_system, req_type);
 			mutex_exit(&fil_system->mutex);
 
-DBUG_RETURN(DB_ERROR);
 			return(DB_ERROR);
 		}
 
@@ -5806,7 +5797,6 @@ DBUG_RETURN(DB_ERROR);
 		ut_ad(fil_validate_skip());
 	}
 
-DBUG_RETURN(err);
 	return(err);
 }
 

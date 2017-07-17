@@ -4060,9 +4060,6 @@ buf_page_get_gen(
 	bool			dirty_with_no_latch)
 {
 
-//cgmin
-DBUG_ENTER("cgmin buf_page_get_gen");
-
 	buf_block_t*	block;
 	unsigned	access_time;
 	rw_lock_t*	hash_lock;
@@ -4193,7 +4190,6 @@ loop:
 			ut_ad(!rw_lock_own(hash_lock, RW_LOCK_X));
 			ut_ad(!rw_lock_own(hash_lock, RW_LOCK_S));
 
-DBUG_RETURN(NULL);
 			return(NULL);
 		}
 
@@ -4267,7 +4263,6 @@ got_block:
 			complete. */
 			buf_block_unfix(fix_block);
 
-DBUG_RETURN(NULL);
 			return(NULL);
 		}
 	}
@@ -4299,7 +4294,6 @@ DBUG_RETURN(NULL);
 			page, so do not bother decompressing the page. */
 			buf_block_unfix(fix_block);
 
-DBUG_RETURN(NULL);
 			return(NULL);
 		}
 
@@ -4530,7 +4524,6 @@ DBUG_RETURN(NULL);
 			ib::info() << "innodb_change_buffering_debug evict "
 				<< page_id;
 
-DBUG_RETURN(NULL);
 			return(NULL);
 		}
 
@@ -4665,7 +4658,6 @@ DBUG_RETURN(NULL);
 	ut_ad(!rw_lock_own(hash_lock, RW_LOCK_X));
 	ut_ad(!rw_lock_own(hash_lock, RW_LOCK_S));
 
-DBUG_RETURN(fix_block);
 	return(fix_block);
 }
 

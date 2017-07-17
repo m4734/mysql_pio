@@ -500,9 +500,6 @@ btr_pcur_open_with_no_init_func(
 	mtr_t*		mtr)	/*!< in: mtr */
 {
 
-//cgmin
-DBUG_ENTER("cgmin btr_pcur_open_with_no_init_func");
-
 	btr_cur_t*	btr_cursor;
 
 	cursor->latch_mode = BTR_LATCH_MODE_WITHOUT_INTENTION(latch_mode);
@@ -531,7 +528,6 @@ DBUG_ENTER("cgmin btr_pcur_open_with_no_init_func");
 
 	cursor->trx_if_known = NULL;
 
-DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**

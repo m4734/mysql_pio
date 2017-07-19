@@ -407,6 +407,8 @@ btr_pcur_move_to_next_page(
 				last record of the current page */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+//cgmin
+DBUG_ENTER("cgmin_btr_pcur_move_to_next_page");
 	ulint		next_page_no;
 	page_t*		page;
 	buf_block_t*	next_block;
@@ -459,6 +461,7 @@ btr_pcur_move_to_next_page(
 	page_cur_set_before_first(next_block, btr_pcur_get_page_cur(cursor));
 
 	ut_d(page_check_dir(next_page));
+DBUG_VOID_RETURN;
 }
 
 /*********************************************************//**

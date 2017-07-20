@@ -2139,6 +2139,10 @@ btr_cur_open_at_index_side_func(
 	ulint		line,		/*!< in: line where called */
 	mtr_t*		mtr)		/*!< in/out: mini-transaction */
 {
+
+//cgmin
+DBUG_ENTER("cgmin btr_cur_open_at_index_side_func");
+
 	page_cur_t*	page_cursor;
 	ulint		node_ptr_max_size = UNIV_PAGE_SIZE / 2;
 	ulint		height;
@@ -2476,6 +2480,9 @@ btr_cur_open_at_index_side_func(
 	if (heap) {
 		mem_heap_free(heap);
 	}
+//cgmin
+DBUG_VOID_RETURN;
+
 }
 
 /** Opens a cursor at either end of an index.

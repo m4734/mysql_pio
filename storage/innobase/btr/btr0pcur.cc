@@ -237,6 +237,9 @@ btr_pcur_restore_position_func(
 	ulint		line,		/*!< in: line where called */
 	mtr_t*		mtr)		/*!< in: mtr */
 {
+//cgmin
+DBUG_ENTER("cgmin btr_pcur_restore_position_func");
+
 	dict_index_t*	index;
 	dtuple_t*	tuple;
 	page_cur_mode_t	mode;
@@ -267,6 +270,7 @@ btr_pcur_restore_position_func(
 		cursor->pos_state = BTR_PCUR_IS_POSITIONED;
 		cursor->block_when_stored = btr_pcur_get_block(cursor);
 
+DBUG_RETURN(FALSE);
 		return(FALSE);
 	}
 
@@ -316,6 +320,7 @@ btr_pcur_restore_position_func(
 						   index));
 				mem_heap_free(heap);
 #endif /* UNIV_DEBUG */
+DBUG_RETURN(TRUE);
 				return(TRUE);
 			}
 			/* This is the same record as stored,
@@ -325,6 +330,7 @@ btr_pcur_restore_position_func(
 				cursor->pos_state
 					= BTR_PCUR_IS_POSITIONED_OPTIMISTIC;
 			}
+DBUG_RETURN(FALSE);
 			return(FALSE);
 		}
 	}
@@ -381,6 +387,7 @@ btr_pcur_restore_position_func(
 
 		mem_heap_free(heap);
 
+DBUG_RETURN(TRUE);
 		return(TRUE);
 	}
 
@@ -392,6 +399,7 @@ btr_pcur_restore_position_func(
 
 	btr_pcur_store_position(cursor, mtr);
 
+DBUG_RETURN(FALSE);
 	return(FALSE);
 }
 

@@ -406,8 +406,10 @@ buf_read_page(
 	mutex, required for updating the page state. The acquire
 	of the buffer pool mutex becomes an expensive bottleneck. */
 
+
+//cgmin
 	count = buf_read_page_low(
-		&err, true,
+		&err, false,
 		0, BUF_READ_ANY_PAGE, page_id, page_size, false);
 
 	srv_stats.buf_pool_reads.add(count);

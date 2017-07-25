@@ -431,7 +431,7 @@ DBUG_ENTER("cgmin buf_read_page");
 if (pio_sync == false)
 	count = buf_read_page_low(
 		&err, false,
-		0, BUF_READ_ANY_PAGE, page_id, page_size, false);
+		IORequest::DO_NOT_WAKE | IORequest::IGNORE_MISSING, BUF_READ_ANY_PAGE, page_id, page_size, false);
 else
 	count = buf_read_page_low(
 		&err, true,

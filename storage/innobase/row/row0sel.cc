@@ -5896,6 +5896,8 @@ DBUG_PRINT("cgmin",("p5"));
 			move = rtr_pcur_move_to_next(
 				search_tuple, mode, pcur, 0, &mtr);
 		} else {
+//cgmin
+pcur->pio_sync = prebuilt->pio_sync;
 			move = btr_pcur_move_to_next(pcur, &mtr);
 		}
 

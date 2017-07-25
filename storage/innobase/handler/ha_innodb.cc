@@ -9142,8 +9142,8 @@ ha_innobase::rnd_next(
 	int	error;
 
 //cgmin
-//	m_prebuilt->pio_sync = true;
-m_prebuilt->pcur->pio_sync = true;
+	m_prebuilt->pio_sync = true;
+//m_prebuilt->pcur->pio_sync = true;
 
 	DBUG_ENTER("rnd_next");
 
@@ -9175,8 +9175,8 @@ ha_innobase::rnd_next_async(
         int     error;
 
 //cgmin
-//	m_prebuilt->pio_sync = false;
-m_prebuilt->pcur->pio_sync = false;
+	m_prebuilt->pio_sync = false;
+//m_prebuilt->pcur->pio_sync = false;
 
         DBUG_ENTER("rnd_next");
 

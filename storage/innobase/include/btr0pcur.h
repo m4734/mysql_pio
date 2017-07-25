@@ -546,6 +546,7 @@ struct btr_pcur_t{
 
 //cgmin
 bool pio_sync;
+
 };
 
 #ifndef UNIV_NONINL

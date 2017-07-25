@@ -905,7 +905,7 @@ struct row_prebuilt_t {
 	ulonglong	m_fts_limit;
 
 //cgmin
-//bool pio_sync;
+bool pio_sync;
 
 };
 

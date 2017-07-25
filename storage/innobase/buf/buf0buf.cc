@@ -4057,20 +4057,6 @@ buf_page_get_gen(
 	const char*		file,
 	ulint			line,
 	mtr_t*			mtr,
-	bool			dirty_with_no_latch)
-{
-	return buf_page_get_gen(page_id,page_size,rw_latch,guess,mode,file,line,mtr,true);
-}
-buf_block_t*
-buf_page_get_gen(
-	const page_id_t&	page_id,
-	const page_size_t&	page_size,
-	ulint			rw_latch,
-	buf_block_t*		guess,
-	ulint			mode,
-	const char*		file,
-	ulint			line,
-	mtr_t*			mtr,
 	bool			dirty_with_no_latch
 //cgmin
 , bool pio_sync
@@ -4267,6 +4253,13 @@ DBUG_RETURN(NULL);
 
 	/* Now safe to release page_hash mutex */
 	rw_lock_s_unlock(hash_lock);
+
+//
+if (pio_sync == false)
+{
+DBUG_RETURN(NULL);
+	return (NULL);
+}
 
 got_block:
 
@@ -4685,6 +4678,20 @@ DBUG_RETURN(NULL);
 
 DBUG_RETURN(fix_block);
 	return(fix_block);
+}
+buf_block_t*
+buf_page_get_gen(
+	const page_id_t&	page_id,
+	const page_size_t&	page_size,
+	ulint			rw_latch,
+	buf_block_t*		guess,
+	ulint			mode,
+	const char*		file,
+	ulint			line,
+	mtr_t*			mtr,
+	bool			dirty_with_no_latch)
+{
+	return buf_page_get_gen(page_id,page_size,rw_latch,guess,mode,file,line,mtr,dirty_with_no_latch,true);
 }
 
 /********************************************************************//**

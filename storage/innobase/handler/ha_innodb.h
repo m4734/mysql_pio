@@ -162,6 +162,8 @@ public:
 	int rnd_end();
 
 	int rnd_next(uchar *buf);
+//cgmin
+int rnd_next_async(uchar *buf);
 
 	int rnd_pos(uchar * buf, uchar *pos);
 

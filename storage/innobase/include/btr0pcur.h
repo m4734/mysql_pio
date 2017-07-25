@@ -543,6 +543,9 @@ struct btr_pcur_t{
 
 	/** Return the index of this persistent cursor */
 	dict_index_t*	index() const { return(btr_cur.index); }
+
+//cgmin
+bool pio_sync;
 };
 
 #ifndef UNIV_NONINL

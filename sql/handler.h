@@ -2362,6 +2362,10 @@ public:
   int ha_rnd_init(bool scan);
   int ha_rnd_end();
   int ha_rnd_next(uchar *buf);
+
+//cgmin
+int ha_rnd_next_async(uchar *buf);
+
   int ha_rnd_pos(uchar * buf, uchar *pos);
   int ha_index_read_map(uchar *buf, const uchar *key,
                         key_part_map keypart_map,
@@ -2849,6 +2853,10 @@ public:
 protected:
   /// @returns @see index_read_map().
   virtual int rnd_next(uchar *buf)=0;
+
+//cgmin
+virtual int rnd_next_async(uchar *buf); //???
+
   /// @returns @see index_read_map().
   virtual int rnd_pos(uchar * buf, uchar *pos)=0;
 public:

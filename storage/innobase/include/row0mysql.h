@@ -903,6 +903,10 @@ struct row_prebuilt_t {
 
 	/** limit value to avoid fts result overflow */
 	ulonglong	m_fts_limit;
+
+//cgmin
+//bool pio_sync;
+
 };
 
 /** Callback for row_mysql_sys_index_iterate() */

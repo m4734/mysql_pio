@@ -404,7 +404,18 @@ released by the i/o-handler thread.
 ibool
 buf_read_page(
 	const page_id_t&	page_id,
-	const page_size_t&	page_size)
+	const page_size_t&	page_size
+)
+{
+	return buf_read_page(page_id,page_size,true);
+}
+ibool
+buf_read_page(
+	const page_id_t&	page_id,
+	const page_size_t&	page_size
+//cgmin
+, bool pio_sync
+)
 {
 	ulint		count;
 	dberr_t		err;
@@ -417,7 +428,11 @@ DBUG_ENTER("cgmin buf_read_page");
 	acquire the buffer pool mutex before acquiring the block
 	mutex, required for updating the page state. The acquire
 	of the buffer pool mutex becomes an expensive bottleneck. */
-
+if (pio_sync == false)
+	count = buf_read_page_low(
+		&err, false,
+		0, BUF_READ_ANY_PAGE, page_id, page_size, false);
+else
 	count = buf_read_page_low(
 		&err, true,
 		0, BUF_READ_ANY_PAGE, page_id, page_size, false);

@@ -4059,6 +4059,24 @@ buf_page_get_gen(
 	mtr_t*			mtr,
 	bool			dirty_with_no_latch)
 {
+	return buf_page_get_gen(page_id,page_size,rw_latch,guess,mode,file,line,mtr,true);
+}
+buf_block_t*
+buf_page_get_gen(
+	const page_id_t&	page_id,
+	const page_size_t&	page_size,
+	ulint			rw_latch,
+	buf_block_t*		guess,
+	ulint			mode,
+	const char*		file,
+	ulint			line,
+	mtr_t*			mtr,
+	bool			dirty_with_no_latch
+//cgmin
+, bool pio_sync
+
+)
+{
 
 //cgmin
 DBUG_ENTER("cgmin buf_page_get_gen");
@@ -4197,7 +4215,7 @@ DBUG_RETURN(NULL);
 			return(NULL);
 		}
 
-		if (buf_read_page(page_id, page_size)) {
+		if (buf_read_page(page_id, page_size,pio_sync)) {
 			buf_read_ahead_random(page_id, page_size,
 					      ibuf_inside(mtr));
 

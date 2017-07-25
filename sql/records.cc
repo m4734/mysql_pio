@@ -195,6 +195,10 @@ bool init_read_record(READ_RECORD *info,THD *thd,
   info->thd=thd;
   info->table=table;
   info->forms= &info->table;		/* Only one table */
+
+//cgmin
+	info->pio_sync = true;
+
   
   if (table->s->tmp_table == NON_TRANSACTIONAL_TMP_TABLE &&
       !table->sort.using_addon_fields())
@@ -507,6 +511,10 @@ static int rr_index_desc(READ_RECORD *info)
 int rr_sequential(READ_RECORD *info)
 {
   int tmp;
+
+//cgmin
+if (info->pio_sync)
+{
   while ((tmp=info->table->file->ha_rnd_next(info->record)))
   {
     /*
@@ -519,6 +527,22 @@ int rr_sequential(READ_RECORD *info)
       break;
     }
   }
+}
+else
+{
+  while ((tmp=info->table->file->ha_rnd_next_async(info->record)))
+  {
+    /*
+      ha_rnd_next can return RECORD_DELETED for MyISAM when one thread is
+      reading and another deleting without locks.
+    */
+    if (info->thd->killed || (tmp != HA_ERR_RECORD_DELETED))
+    {
+      tmp= rr_handle_error(info, tmp);
+      break;
+    }
+  }
+}
   return tmp;
 }
 

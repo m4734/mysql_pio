@@ -72,6 +72,10 @@ struct READ_RECORD
 
 public:
   READ_RECORD() {}
+
+//cgmin
+	bool pio_sync;
+
 };
 
 bool init_read_record(READ_RECORD *info, THD *thd,

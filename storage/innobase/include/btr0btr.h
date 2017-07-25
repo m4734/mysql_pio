@@ -213,6 +213,21 @@ btr_block_get_func(
 	const dict_index_t*	index,
 # endif /* UNIV_DEBUG */
 	mtr_t*		mtr);
+//cgmin
+UNIV_INLINE
+buf_block_t*
+btr_block_get_func_async(
+	const page_id_t&	page_id,
+	const page_size_t&	page_size,
+	ulint			mode,
+	const char*		file,
+	ulint			line,
+# ifdef UNIV_DEBUG
+	const dict_index_t*	index,
+# endif /* UNIV_DEBUG */
+	mtr_t*		mtr
+,	bool pio_sync
+);
 
 # ifdef UNIV_DEBUG
 /** Gets a buffer page and declares its latching order level.
@@ -225,6 +240,12 @@ btr_block_get_func(
 #  define btr_block_get(page_id, page_size, mode, index, mtr)	\
 	btr_block_get_func(page_id, page_size, mode,		\
 			   __FILE__, __LINE__, index, mtr)
+
+#  define btr_block_get_async(page_id, page_size, mode, index, mtr, pio_sync)	\
+	btr_block_get_func_async(page_id, page_size, mode,		\
+			   __FILE__, __LINE__, index, mtr,pio_sync)
+
+
 # else /* UNIV_DEBUG */
 /** Gets a buffer page and declares its latching order level.
 @param page_id tablespace/page identifier
@@ -235,6 +256,10 @@ btr_block_get_func(
 @return the block descriptor */
 #  define btr_block_get(page_id, page_size, mode, index, mtr)	\
 	btr_block_get_func(page_id, page_size, mode, __FILE__, __LINE__, mtr)
+
+#  define btr_block_get_async(page_id, page_size, mode, index, mtr, pio_sync)	\
+	btr_block_get_func_async(page_id, page_size, mode, __FILE__, __LINE__, mtr,pio_sync)
+
 # endif /* UNIV_DEBUG */
 /** Gets a buffer page and declares its latching order level.
 @param page_id tablespace/page identifier

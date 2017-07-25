@@ -1293,6 +1293,8 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
 
 DBUG_PRINT("cgmin", ("pio start"));
 
+info->pio_sync = false;
+
 while (rc == NESTED_LOOP_OK)
 {
 	int error;
@@ -1323,6 +1325,8 @@ while (rc == NESTED_LOOP_OK)
 }
 
 DBUG_PRINT("cgmin",( "pio end"));
+
+info->pio_sync = true;
 
 rc = NESTED_LOOP_OK;
 in_first_read = true;

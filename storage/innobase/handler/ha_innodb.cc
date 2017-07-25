@@ -9141,6 +9141,10 @@ ha_innobase::rnd_next(
 {
 	int	error;
 
+//cgmin
+//	m_prebuilt->pio_sync = true;
+m_prebuilt->pcur->pio_sync = true;
+
 	DBUG_ENTER("rnd_next");
 
 	ha_statistic_increment(&SSV::ha_read_rnd_next_count);
@@ -9159,6 +9163,40 @@ ha_innobase::rnd_next(
 
 	DBUG_RETURN(error);
 }
+
+//cgmin
+
+int
+ha_innobase::rnd_next_async(
+/*==================*/
+        uchar*  buf)    /*!< in/out: returns the row in this buffer,
+                        in MySQL format */
+{
+        int     error;
+
+//cgmin
+//	m_prebuilt->pio_sync = false;
+m_prebuilt->pcur->pio_sync = false;
+
+        DBUG_ENTER("rnd_next");
+
+        ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+
+        if (m_start_of_scan) {
+                error = index_first(buf);
+
+                if (error == HA_ERR_KEY_NOT_FOUND) {
+                        error = HA_ERR_END_OF_FILE;
+                }
+
+                m_start_of_scan = false;
+        } else {
+                error = general_fetch(buf, ROW_SEL_NEXT, 0);
+        }
+
+        DBUG_RETURN(error);
+}
+
 
 /**********************************************************************//**
 Fetches a row from the table based on a row reference.

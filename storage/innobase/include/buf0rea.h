@@ -42,6 +42,16 @@ buf_read_page(
 	const page_id_t&	page_id,
 	const page_size_t&	page_size);
 
+//cgmin
+ibool
+buf_read_page(
+	const page_id_t&	page_id,
+	const page_size_t&	page_size
+, bool pio_sync
+);
+
+
+
 /** High-level function which reads a page asynchronously from a file to the
 buffer buf_pool if it is not already there. Sets the io_fix flag and sets
 an exclusive lock on the buffer frame. The flag is cleared and the x-lock

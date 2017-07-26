@@ -163,6 +163,9 @@ public:
 
 	int rnd_next(uchar *buf);
 
+//cgmin
+	int rnd_next_pio(uchar *buf,int pio_t);
+
 	int rnd_pos(uchar * buf, uchar *pos);
 
 	int ft_init();
@@ -442,6 +445,8 @@ protected:
 	void update_thd(THD* thd);
 
 	int general_fetch(uchar* buf, uint direction, uint match_mode);
+//cgmin
+	int general_fetch(uchar* buf, uint direction, uint match_mode,int t);
 
 	virtual dict_index_t* innobase_get_index(uint keynr);
 

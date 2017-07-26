@@ -4484,6 +4484,18 @@ row_search_mvcc(
 	ulint		match_mode,
 	ulint		direction)
 {
+	return row_search_mvcc(buf,mode,prebuilt,match_mode,direction,false);
+}
+dberr_t
+row_search_mvcc(
+	byte*		buf,
+	page_cur_mode_t	mode,
+	row_prebuilt_t*	prebuilt,
+	ulint		match_mode,
+	ulint		direction
+,int pio_t
+)
+{
 	DBUG_ENTER("row_search_mvcc");
 
 	dict_index_t*	index		= prebuilt->index;
@@ -5896,6 +5908,13 @@ DBUG_PRINT("cgmin",("p5"));
 			move = rtr_pcur_move_to_next(
 				search_tuple, mode, pcur, 0, &mtr);
 		} else {
+if (pio_t)
+{
+move = false;
+	while(!move)
+		move = btr_pcur_move_to_next(pcur,&mtr);
+}
+else
 			move = btr_pcur_move_to_next(pcur, &mtr);
 		}
 

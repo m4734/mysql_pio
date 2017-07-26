@@ -1290,7 +1290,7 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
   end_read_record();
 @endcode        
 */
-
+/*
 DBUG_PRINT("cgmin", ("pio start"));
 
 while (rc == NESTED_LOOP_OK)
@@ -1323,9 +1323,17 @@ while (rc == NESTED_LOOP_OK)
 }
 
 DBUG_PRINT("cgmin",( "pio end"));
+*/
+if (info->read_record == rr_sequential)
+{
+	(*qep_tab->read_first_record)(qep_tab);
+	info->read_record_pio(info);
+}
 
-rc = NESTED_LOOP_OK;
-in_first_read = true;
+//printf("cgmin\n");
+
+//rc = NESTED_LOOP_OK;
+//in_first_read = true;
 
 
 //cgmin

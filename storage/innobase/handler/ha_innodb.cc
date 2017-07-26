@@ -8897,7 +8897,6 @@ ha_innobase::change_active_index(
 Reads the next or previous row from a cursor, which must have previously been
 positioned using index_read.
 @return 0, HA_ERR_END_OF_FILE, or error number */
-
 int
 ha_innobase::general_fetch(
 /*=======================*/
@@ -8905,6 +8904,20 @@ ha_innobase::general_fetch(
 				format */
 	uint	direction,	/*!< in: ROW_SEL_NEXT or ROW_SEL_PREV */
 	uint	match_mode)	/*!< in: 0, ROW_SEL_EXACT, or
+				ROW_SEL_EXACT_PREFIX */
+{
+	return general_fetch(buf,direction,match_mode,false);
+}
+
+int
+ha_innobase::general_fetch(
+/*=======================*/
+	uchar*	buf,		/*!< in/out: buffer for next row in MySQL
+				format */
+	uint	direction,	/*!< in: ROW_SEL_NEXT or ROW_SEL_PREV */
+	uint	match_mode
+, int pio_t
+)	/*!< in: 0, ROW_SEL_EXACT, or
 				ROW_SEL_EXACT_PREFIX */
 {
 	DBUG_ENTER("general_fetch");
@@ -8931,7 +8944,7 @@ ha_innobase::general_fetch(
 
 		ret = row_search_mvcc(
 			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,
-			direction);
+			direction,pio_t);
 
 	} else {
 		ret = row_search_no_mvcc(
@@ -9158,6 +9171,33 @@ ha_innobase::rnd_next(
 	}
 
 	DBUG_RETURN(error);
+}
+
+//cgmin
+int
+ha_innobase::rnd_next_pio(uchar* buf,int pio_t)
+{
+	int	error;
+
+	DBUG_ENTER("rnd_next");
+
+	ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+
+//	if (m_start_of_scan) {
+		error = index_first(buf);
+
+		if (error == HA_ERR_KEY_NOT_FOUND) {
+//			error = HA_ERR_END_OF_FILE;
+DBUG_RETURN(HA_ERR_END_OF_FILE);
+		}
+
+//		m_start_of_scan = false;
+//	} else {
+		error = general_fetch(buf, ROW_SEL_NEXT, 0,pio_t);
+//	}
+
+	DBUG_RETURN(error);
+
 }
 
 /**********************************************************************//**

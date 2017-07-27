@@ -91,7 +91,7 @@ EOF
 		install /dev/null -m0640 -omysql -gadm ${MYSQLLOG}/error.log
 	fi
 
-	/lib/apparmor/profile-load usr.sbin.mysqld
+	/lib/init/apparmor-profile-load usr.sbin.mysqld
 
 	if [ ! -r /etc/mysql/my.cnf ]; then
 		echo "MySQL configuration not found at /etc/mysql/my.cnf. Please install one using update-alternatives."

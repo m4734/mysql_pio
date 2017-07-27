@@ -5045,6 +5045,20 @@ wait_table_again:
 			}
 		}
 	} else if (mode == PAGE_CUR_G || mode == PAGE_CUR_L) {
+
+//cgmin
+//
+if (pio_t > 0)
+{
+	printf("cgmin\n");
+
+	btr_pcur_t pcur_pio[128];
+	btr_pcur_t temp_pcur_pio;
+	ulint page_id_pio[128];
+	prepare_pio(pio_t,pcur_pio,page_id_pio,mode == PAGE_CUR_G,index,BTR_SEARCH_LEAF,&temp_pcur_pio,false,0,&mtr);
+	do_pio(pio_t,pcur_pio,page_id_pio,&mtr);
+	close_pio(pio_t,pcur_pio,&temp_pcur_pio);
+}
 		btr_pcur_open_at_index_side(
 			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
 			pcur, false, 0, &mtr);
@@ -5908,13 +5922,13 @@ DBUG_PRINT("cgmin",("p5"));
 			move = rtr_pcur_move_to_next(
 				search_tuple, mode, pcur, 0, &mtr);
 		} else {
-if (pio_t)
-{
-move = false;
-	while(!move)
-		move = btr_pcur_move_to_next(pcur,&mtr);
-}
-else
+//if (pio_t)
+//{
+//move = false;
+//	while(!move)
+//		move = btr_pcur_move_to_next(pcur,&mtr);
+//}
+//else
 			move = btr_pcur_move_to_next(pcur, &mtr);
 		}
 

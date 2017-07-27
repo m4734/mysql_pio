@@ -1,4 +1,4 @@
-mysql-community (5.7.17-1ubuntu16.04) xenial; urgency=low
+mysql-community (5.7.17-1ubuntu14.04) trusty; urgency=low
 
   [ Akhil Mohan ]
   * new upstream release

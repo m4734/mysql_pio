@@ -509,6 +509,9 @@ protected:
 
         /** If mysql has locked with external_lock() */
         bool                    m_mysql_has_locked;
+
+//cgmin
+		int pio_t;
 };
 
 

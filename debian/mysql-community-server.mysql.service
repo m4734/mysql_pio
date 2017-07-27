@@ -28,7 +28,7 @@ Group=mysql
 Type=forking
 PermissionsStartOnly=true
 PIDFile=/var/run/mysqld/mysqld.pid
-ExecStartPre=/usr/share/mysql/mysql-systemd-start pre
+
 ExecStart=/usr/sbin/mysqld --daemonize --pid-file=/var/run/mysqld/mysqld.pid
 TimeoutSec=600
 LimitNOFILE = 5000

@@ -148,6 +148,40 @@ btr_pcur_open_with_no_init_func(
 #define btr_pcur_open_with_no_init(ix,t,md,l,cur,has,m)			\
 	btr_pcur_open_with_no_init_func(ix,t,md,l,cur,has,__FILE__,__LINE__,m)
 
+//cgmin
+#if 0 
+void set_pcur_pos_pio_func(int pio_t,btr_pcur_t* pcur_pio,ulint* page_id_pio,btr_pcur_t* temp_pcur_pio,
+	bool		from_left,	/*!< in: true if open to the low end,
+					false if to the high end */
+	dict_index_t*	index,		/*!< in: index */
+	ulint		latch_mode,	/*!< in: latch mode */
+	btr_cur_t*	cursor,		/*!< in/out: cursor */
+	ulint		level,		/*!< in: level to search for
+					(0=leaf). */
+	const char*	file,		/*!< in: file name */
+	ulint		line,		/*!< in: line where called */
+	mtr_t*		mtr);		/*!< in/out: mini-transaction */
+#define set_pcur_pos_pio(pt,pp,pip,tpp,f,i,l,c,lv,m)			\
+	set_pcur_pos_pio_func(pt,pp,pip,tpp,f,i,l,c,lv,__FILE__,__LINE__,m)
+#endif
+UNIV_INLINE
+void prepare_pio(int pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,
+	bool		from_left,	/*!< in: true if open to the low end,
+					false if to the high end */
+	dict_index_t*	index,		/*!< in: index */
+	ulint		latch_mode,	/*!< in: latch mode */
+	btr_pcur_t*	pcur,		/*!< in/out: cursor */
+	bool		init_pcur,	/*!< in: whether to initialize pcur */
+	ulint		level,		/*!< in: level to search for
+					(0=leaf) */
+	mtr_t*		mtr)		/*!< in/out: mini-transaction */
+;
+UNIV_INLINE
+void do_pio(int pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,mtr_t* mtr);
+UNIV_INLINE
+void close_pio(int pio_t,btr_pcur_t *pcur_pio,btr_pcur_t* pcur);
+
+
 /*****************************************************************//**
 Opens a persistent cursor at either end of an index. */
 UNIV_INLINE

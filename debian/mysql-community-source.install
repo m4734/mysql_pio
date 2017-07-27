@@ -15,7 +15,7 @@
 
 ../*.dsc    usr/src/mysql/
 ../*.tar.gz usr/src/mysql/
-../*.tar.xz usr/src/mysql/
+
 # legal
 usr/share/doc/mysql-community-source/COPYING
 usr/share/doc/mysql-community-source/README

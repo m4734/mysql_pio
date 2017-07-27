@@ -115,7 +115,7 @@ usr/share/mysql/mysql-log-rotate
 # localized error msgs
 usr/share/mysql/*/errmsg.sys
 usr/share/mysql/errmsg-utf8.txt
-usr/share/mysql/mysql-systemd-start
+
 usr/share/mysql/mysqld_multi.server
 # legal
 usr/share/doc/mysql-community-server/COPYING

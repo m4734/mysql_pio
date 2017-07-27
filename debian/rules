@@ -80,7 +80,7 @@ override_dh_auto_install:
 	# add apparmor profile
 	install -g root -o root -m 0644 -D debian/extra/apparmor-profile debian/tmp/etc/apparmor.d/usr.sbin.mysqld
 	# add systemd script
-	install -m 0755 debian/extra/mysql-systemd-start debian/tmp/usr/share/mysql/
+	
 	# add directory for legal docs
 	install -g root -o root -m 0755 -d debian/tmp/usr/share/doc/mysql-server
 	install -g root -o root -m 0755 -d debian/tmp/usr/share/doc/mysql-community-server
@@ -122,9 +122,9 @@ override_dh_auto_install:
 override_dh_installinit:
 	@echo "RULES.$@"
 	dh_apparmor -pmysql-community-server --profile-name=usr.sbin.mysqld
-	dh_systemd_enable --name=mysql
+	
 	dh_installinit --name=mysql -- defaults 19 21
-	dh_systemd_start --restart-after-upgrade
+	
 	touch $@
 
 override_dh_install:

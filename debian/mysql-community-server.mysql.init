@@ -184,7 +184,7 @@ case "$1" in
 			chmod 755 ${MYSQLRUN}
 		fi
 
-		/lib/apparmor/profile-load usr.sbin.mysqld
+		/lib/init/apparmor-profile-load usr.sbin.mysqld
 
 		su - mysql -s /bin/bash -c "mysqld_safe > /dev/null &"
 		verify_server start

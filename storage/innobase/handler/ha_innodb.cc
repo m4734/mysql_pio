@@ -2796,6 +2796,9 @@ ha_innobase::ha_innobase(
 	m_start_of_scan(),
 	m_num_write_row(),
         m_mysql_has_locked()
+
+	//cgmin
+	,pio_t(8)
 {}
 
 /*********************************************************************//**
@@ -8629,7 +8632,10 @@ ha_innobase::index_read(
 
 			m_prebuilt->ins_sel_stmt = thd_is_ins_sel_stmt(
 				m_user_thd);
-
+			//cgmin
+if (m_start_of_scan)
+	ret = row_search_mvcc(buf,mode,m_prebuilt,match_mode,0,pio_t);
+else
 			ret = row_search_mvcc(
 				buf, mode, m_prebuilt, match_mode, 0);
 

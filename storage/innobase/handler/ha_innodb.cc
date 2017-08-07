@@ -2798,11 +2798,7 @@ ha_innobase::ha_innobase(
         m_mysql_has_locked()
 
 	//cgmin
-<<<<<<< HEAD
 	,pio_t(0)
-=======
-	,pio_t(8)
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 {}
 
 /*********************************************************************//**
@@ -8637,16 +8633,11 @@ ha_innobase::index_read(
 			m_prebuilt->ins_sel_stmt = thd_is_ins_sel_stmt(
 				m_user_thd);
 			//cgmin
-<<<<<<< HEAD
 if (pio_t > 0)
 {
 	printf("index_read_pio\n");
 	ret = row_search_mvcc(buf,mode,m_prebuilt,match_mode,0,pio_t);
 }
-=======
-if (m_start_of_scan)
-	ret = row_search_mvcc(buf,mode,m_prebuilt,match_mode,0,pio_t);
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 else
 			ret = row_search_mvcc(
 				buf, mode, m_prebuilt, match_mode, 0);
@@ -8924,20 +8915,6 @@ ha_innobase::general_fetch(
 	uint	match_mode)	/*!< in: 0, ROW_SEL_EXACT, or
 				ROW_SEL_EXACT_PREFIX */
 {
-	return general_fetch(buf,direction,match_mode,false);
-}
-
-int
-ha_innobase::general_fetch(
-/*=======================*/
-	uchar*	buf,		/*!< in/out: buffer for next row in MySQL
-				format */
-	uint	direction,	/*!< in: ROW_SEL_NEXT or ROW_SEL_PREV */
-	uint	match_mode
-, int pio_t
-)	/*!< in: 0, ROW_SEL_EXACT, or
-				ROW_SEL_EXACT_PREFIX */
-{
 	DBUG_ENTER("general_fetch");
 
 	const trx_t*	trx = m_prebuilt->trx;
@@ -8963,11 +8940,7 @@ ha_innobase::general_fetch(
 		ret = row_search_mvcc(
 			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,
 			direction,pio_t);
-<<<<<<< HEAD
 			pio_t = 0;
-=======
-
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 	} else {
 		ret = row_search_no_mvcc(
 			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,
@@ -9197,19 +9170,12 @@ ha_innobase::rnd_next(
 
 //cgmin
 int
-<<<<<<< HEAD
 ha_innobase::rnd_next_pio(uchar* buf,int t)
 {
 	int	error;
 
 	pio_t = t;
 
-=======
-ha_innobase::rnd_next_pio(uchar* buf,int pio_t)
-{
-	int	error;
-
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 	DBUG_ENTER("rnd_next");
 
 	ha_statistic_increment(&SSV::ha_read_rnd_next_count);
@@ -9224,11 +9190,7 @@ DBUG_RETURN(HA_ERR_END_OF_FILE);
 
 //		m_start_of_scan = false;
 //	} else {
-<<<<<<< HEAD
 		error = general_fetch(buf, ROW_SEL_NEXT, 0);
-=======
-		error = general_fetch(buf, ROW_SEL_NEXT, 0,pio_t);
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 //	}
 
 	DBUG_RETURN(error);

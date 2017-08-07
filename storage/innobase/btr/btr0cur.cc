@@ -2124,11 +2124,7 @@ btr_cur_search_to_nth_level_with_no_latch(
 }
 
 //cgmin
-<<<<<<< HEAD
 #if 0
-=======
-#if 1
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 void set_pcur_pos_pio_func(int pio_t,btr_pcur_t* pcur_pio,int* page_id_pio,btr_pcur_t* temp_pcur_pio,
 	bool		from_left,	/*!< in: true if open to the low end,
 					false if to the high end */

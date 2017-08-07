@@ -2959,11 +2959,7 @@ int handler::ha_rnd_next_pio(uchar *buf,int t)
 {
   int result;
   DBUG_EXECUTE_IF("ha_rnd_next_deadlock", return HA_ERR_LOCK_DEADLOCK;);
-<<<<<<< HEAD
   DBUG_ENTER("handler::ha_rnd_next_pio");
-=======
-  DBUG_ENTER("handler::ha_rnd_next");
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
   DBUG_ASSERT(table_share->tmp_table != NO_TMP_TABLE ||
               m_lock_type != F_UNLCK);
   DBUG_ASSERT(inited == RND);

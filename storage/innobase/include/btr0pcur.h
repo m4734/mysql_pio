@@ -165,11 +165,7 @@ void set_pcur_pos_pio_func(int pio_t,btr_pcur_t* pcur_pio,ulint* page_id_pio,btr
 	set_pcur_pos_pio_func(pt,pp,pip,tpp,f,i,l,c,lv,__FILE__,__LINE__,m)
 #endif
 UNIV_INLINE
-<<<<<<< HEAD
 void prepare_pio(int* pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,
-=======
-void prepare_pio(int pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 	bool		from_left,	/*!< in: true if open to the low end,
 					false if to the high end */
 	dict_index_t*	index,		/*!< in: index */
@@ -181,15 +177,9 @@ void prepare_pio(int pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,
 	mtr_t*		mtr)		/*!< in/out: mini-transaction */
 ;
 UNIV_INLINE
-<<<<<<< HEAD
 void do_pio(int* pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,mtr_t* mtr);
 UNIV_INLINE
 void close_pio(int* pio_t,btr_pcur_t *pcur_pio,mtr_t* mtr);
-=======
-void do_pio(int pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,mtr_t* mtr);
-UNIV_INLINE
-void close_pio(int pio_t,btr_pcur_t *pcur_pio,btr_pcur_t* pcur);
->>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 
 
 /*****************************************************************//**

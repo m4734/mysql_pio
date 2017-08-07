@@ -2796,6 +2796,9 @@ ha_innobase::ha_innobase(
 	m_start_of_scan(),
 	m_num_write_row(),
         m_mysql_has_locked()
+
+	//cgmin
+	,pio_t(0)
 {}
 
 /*********************************************************************//**
@@ -8629,7 +8632,13 @@ ha_innobase::index_read(
 
 			m_prebuilt->ins_sel_stmt = thd_is_ins_sel_stmt(
 				m_user_thd);
-
+			//cgmin
+if (pio_t > 0)
+{
+	printf("index_read_pio\n");
+	ret = row_search_mvcc(buf,mode,m_prebuilt,match_mode,0,pio_t);
+}
+else
 			ret = row_search_mvcc(
 				buf, mode, m_prebuilt, match_mode, 0);
 
@@ -8897,7 +8906,6 @@ ha_innobase::change_active_index(
 Reads the next or previous row from a cursor, which must have previously been
 positioned using index_read.
 @return 0, HA_ERR_END_OF_FILE, or error number */
-
 int
 ha_innobase::general_fetch(
 /*=======================*/
@@ -8931,8 +8939,8 @@ ha_innobase::general_fetch(
 
 		ret = row_search_mvcc(
 			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,
-			direction);
-
+			direction,pio_t);
+			pio_t = 0;
 	} else {
 		ret = row_search_no_mvcc(
 			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,
@@ -9158,6 +9166,35 @@ ha_innobase::rnd_next(
 	}
 
 	DBUG_RETURN(error);
+}
+
+//cgmin
+int
+ha_innobase::rnd_next_pio(uchar* buf,int t)
+{
+	int	error;
+
+	pio_t = t;
+
+	DBUG_ENTER("rnd_next");
+
+	ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+
+//	if (m_start_of_scan) {
+		error = index_first(buf);
+
+		if (error == HA_ERR_KEY_NOT_FOUND) {
+//			error = HA_ERR_END_OF_FILE;
+DBUG_RETURN(HA_ERR_END_OF_FILE);
+		}
+
+//		m_start_of_scan = false;
+//	} else {
+		error = general_fetch(buf, ROW_SEL_NEXT, 0);
+//	}
+
+	DBUG_RETURN(error);
+
 }
 
 /**********************************************************************//**
@@ -14752,6 +14789,28 @@ get_foreign_key_info(
 	f_key_info.update_method = thd_make_lex_string(
 		thd, f_key_info.update_method, ptr,
 		static_cast<unsigned int>(len), 1);
+
+	/* Load referenced table to update FK referenced key name. */
+	if (foreign->referenced_table == NULL) {
+
+		dict_table_t*	ref_table;
+
+		ut_ad(mutex_own(&dict_sys->mutex));
+		ref_table = dict_table_open_on_name(
+			foreign->referenced_table_name_lookup,
+			TRUE, FALSE, DICT_ERR_IGNORE_NONE);
+
+		if (ref_table == NULL) {
+
+			ib::info() << "Foreign Key referenced table "
+				   << foreign->referenced_table_name
+				   << " not found for foreign table "
+				   << foreign->foreign_table_name;
+		} else {
+
+			dict_table_close(ref_table, TRUE, FALSE);
+		}
+	}
 
 	if (foreign->referenced_index
 	    && foreign->referenced_index->name != NULL) {

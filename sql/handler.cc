@@ -2954,6 +2954,34 @@ int handler::ha_rnd_next(uchar *buf)
   DBUG_RETURN(result);
 }
 
+//cgmin
+int handler::ha_rnd_next_pio(uchar *buf,int t)
+{
+  int result;
+  DBUG_EXECUTE_IF("ha_rnd_next_deadlock", return HA_ERR_LOCK_DEADLOCK;);
+  DBUG_ENTER("handler::ha_rnd_next_pio");
+  DBUG_ASSERT(table_share->tmp_table != NO_TMP_TABLE ||
+              m_lock_type != F_UNLCK);
+  DBUG_ASSERT(inited == RND);
+
+  // Set status for the need to update generated fields
+  m_update_generated_read_fields= table->has_gcol();
+
+  MYSQL_TABLE_IO_WAIT(PSI_TABLE_FETCH_ROW, MAX_KEY, result,
+    { result= rnd_next_pio(buf,t); })
+  if (!result && m_update_generated_read_fields)
+  {
+    result= update_generated_read_fields(buf, table);
+    m_update_generated_read_fields= false;
+  }
+  DBUG_RETURN(result);
+
+}
+
+int handler::rnd_next_pio(uchar *buf,int t)
+{
+	return 0;
+}
 
 /**
   Read row via random scan from position.

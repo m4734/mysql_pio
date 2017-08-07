@@ -1,0 +1,6 @@
+tree 17f3f77a640d02c8619c34163be116f380c9ad1a
+parent 3893920cbeaa0d510e58ca0963031b5dc69abac8
+author miguel@hegel.local <> 1021422489 -0300
+committer miguel@hegel.local <> 1021422489 -0300
+
+Fix VC++ compiler error

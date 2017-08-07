@@ -119,6 +119,10 @@ buf_read_page_low(
 	const page_size_t&	page_size,
 	bool			unzip)
 {
+
+//cgmin
+DBUG_ENTER("cgmin buf_read_page_low");
+
 	buf_page_t*	bpage;
 
 	*err = DB_SUCCESS;
@@ -128,6 +132,8 @@ buf_read_page_low(
 
 		ib::error() << "Trying to read doublewrite buffer page "
 			<< page_id;
+
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -150,6 +156,7 @@ buf_read_page_low(
 
 	if (bpage == NULL) {
 
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -198,10 +205,14 @@ buf_read_page_low(
 				recv_sys->n_addrs--;
 				mutex_exit(&recv_sys->mutex);
 			}
+
+DBUG_RETURN(0);
 			return(0);
 		} else if (IORequest::ignore_missing(type)
 			   || *err == DB_TABLESPACE_DELETED) {
 			buf_read_page_handle_error(bpage);
+
+DBUG_RETURN(0);
 			return(0);
 		}
 
@@ -212,10 +223,13 @@ buf_read_page_low(
 		/* The i/o is already completed when we arrive from
 		fil_read */
 		if (!buf_page_io_complete(bpage)) {
+
+DBUG_RETURN(0);
 			return(0);
 		}
 	}
 
+DBUG_RETURN(1);
 	return(1);
 }
 
@@ -395,6 +409,9 @@ buf_read_page(
 	ulint		count;
 	dberr_t		err;
 
+//cgmin
+DBUG_ENTER("cgmin buf_read_page");
+
 	/* We do synchronous IO because our AIO completion code
 	is sub-optimal. See buf_page_io_complete(), we have to
 	acquire the buffer pool mutex before acquiring the block
@@ -415,6 +432,7 @@ buf_read_page(
 	/* Increment number of I/O operations used for LRU policy. */
 	buf_LRU_stat_inc_io();
 
+DBUG_RETURN(count > 0);
 	return(count > 0);
 }
 
@@ -485,6 +503,10 @@ buf_read_ahead_linear(
 	const page_size_t&	page_size,
 	ibool			inside_ibuf)
 {
+
+//cgmin
+DBUG_ENTER("cgmin buf_read_ahead_linear");
+
 	buf_pool_t*	buf_pool = buf_pool_get(page_id);
 	buf_page_t*	bpage;
 	buf_frame_t*	frame;
@@ -503,11 +525,15 @@ buf_read_ahead_linear(
 
 	/* check if readahead is disabled */
 	if (!srv_read_ahead_threshold) {
+
+DBUG_RETURN(0);
 		return(0);
 	}
 
 	if (srv_startup_is_before_trx_rollback_phase) {
 		/* No read-ahead to avoid thread deadlocks */
+
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -519,6 +545,7 @@ buf_read_ahead_linear(
 	if ((page_id.page_no() != low) && (page_id.page_no() != high - 1)) {
 		/* This is not a border page of the area: return */
 
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -528,6 +555,7 @@ buf_read_ahead_linear(
 		no read-ahead, as that could break the ibuf page access
 		order */
 
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -542,9 +570,13 @@ buf_read_ahead_linear(
 
 		if (high > space_size) {
 			/* The area is not whole */
+
+DBUG_RETURN(0);
 			return(0);
 		}
 	} else {
+
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -554,6 +586,7 @@ buf_read_ahead_linear(
 	    > buf_pool->curr_size / BUF_READ_AHEAD_PEND_LIMIT) {
 		buf_pool_mutex_exit(buf_pool);
 
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -603,6 +636,8 @@ buf_read_ahead_linear(
 		if (fail_count > threshold) {
 			/* Too many failures: return */
 			buf_pool_mutex_exit(buf_pool);
+
+DBUG_RETURN(0);
 			return(0);
 		}
 
@@ -619,6 +654,7 @@ buf_read_ahead_linear(
 	if (bpage == NULL) {
 		buf_pool_mutex_exit(buf_pool);
 
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -659,6 +695,8 @@ buf_read_ahead_linear(
 	} else {
 		/* Successor or predecessor not in the right order */
 
+
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -670,12 +708,16 @@ buf_read_ahead_linear(
 	if ((new_offset != low) && (new_offset != high - 1)) {
 		/* This is not a border page of the area: return */
 
+
+DBUG_RETURN(0);
 		return(0);
 	}
 
 	if (high > space_size) {
 		/* The area is not whole, return */
 
+
+DBUG_RETURN(0);
 		return(0);
 	}
 
@@ -735,6 +777,8 @@ buf_read_ahead_linear(
 	buf_LRU_stat_inc_io();
 
 	buf_pool->stat.n_ra_pages_read += count;
+
+DBUG_RETURN(count);
 	return(count);
 }
 

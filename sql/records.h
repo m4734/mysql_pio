@@ -52,6 +52,10 @@ struct READ_RECORD
   TABLE **forms;                                /* head and ref forms */
   Unlock_row_func unlock_row;
   Read_func read_record;
+
+//cgmin
+	Read_func read_record_pio;
+
   THD *thd;
   QUICK_SELECT_I *quick;
   uint cache_records;
@@ -72,6 +76,9 @@ struct READ_RECORD
 
 public:
   READ_RECORD() {}
+
+//cgmin
+int pio_t;
 };
 
 bool init_read_record(READ_RECORD *info, THD *thd,
@@ -84,5 +91,7 @@ void end_read_record(READ_RECORD *info);
 
 void rr_unlock_row(QEP_TAB *tab);
 int rr_sequential(READ_RECORD *info);
+
+int rr_sequential_pio(READ_RECORD *info);
 
 #endif /* SQL_RECORDS_H */

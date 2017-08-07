@@ -186,6 +186,9 @@ bool init_read_record(READ_RECORD *info,THD *thd,
   IO_CACHE *tempfile;
   DBUG_ENTER("init_read_record");
 
+//cgmin
+info->read_record_pio = rr_sequential_pio;
+info->pio_t=64;
   // If only 'table' is given, assume no quick, no condition.
   DBUG_ASSERT(!(table && qep_tab));
   if (!table)
@@ -522,6 +525,24 @@ int rr_sequential(READ_RECORD *info)
   return tmp;
 }
 
+int rr_sequential_pio(READ_RECORD *info)
+{
+  int tmp;
+  while ((tmp=info->table->file->ha_rnd_next_pio(info->record,64)))//info->pio_t)))
+  {
+    /*
+      ha_rnd_next can return RECORD_DELETED for MyISAM when one thread is
+      reading and another deleting without locks.
+    */
+    if (info->thd->killed || (tmp != HA_ERR_RECORD_DELETED))
+    {
+      tmp= rr_handle_error(info, tmp);
+      break;
+    }
+  }
+  return tmp;
+//return info->table->file->ha_pio_full_scan(info->record);
+}
 
 static int rr_from_tempfile(READ_RECORD *info)
 {

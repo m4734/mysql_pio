@@ -239,6 +239,23 @@ btr_cur_open_at_index_side_func(
 #define btr_cur_open_at_index_side(f,i,l,c,lv,m)			\
 	btr_cur_open_at_index_side_func(f,i,l,c,lv,__FILE__,__LINE__,m)
 
+//cgmin
+#if 0
+void set_pcur_pos_pio_func(int pio_t,btr_pcur_t* pcur_pio,ulint* page_id_pio,btr_pcur_t* temp_pcur_pio,
+	bool		from_left,	/*!< in: true if open to the low end,
+					false if to the high end */
+	dict_index_t*	index,		/*!< in: index */
+	ulint		latch_mode,	/*!< in: latch mode */
+	btr_cur_t*	cursor,		/*!< in/out: cursor */
+	ulint		level,		/*!< in: level to search for
+					(0=leaf). */
+	const char*	file,		/*!< in: file name */
+	ulint		line,		/*!< in: line where called */
+	mtr_t*		mtr);		/*!< in/out: mini-transaction */
+#define set_pcur_pos_pio(pt,pp,pip,tpp,f,i,l,c,lv,m)			\
+	set_pcur_pos_pio_func(pt,pp,pip,tpp,f,i,l,c,lv,__FILE__,__LINE__,m)
+#endif
+
 /** Opens a cursor at either end of an index.
 Avoid taking latches on buffer, just pin (by incrementing fix_count)
 to keep them in buffer pool. This mode is used by intrinsic table
@@ -264,6 +281,19 @@ btr_cur_open_at_index_side_with_no_latch_func(
 #define btr_cur_open_at_index_side_with_no_latch(f,i,c,lv,m)		\
 	btr_cur_open_at_index_side_with_no_latch_func(			\
 		f,i,c,lv,__FILE__,__LINE__,m)
+bool
+btr_cur_open_pio_func(
+/*=========================*/
+		int *pio_t,
+		ulint* page_id_pio,
+	dict_index_t*	index,		/*!< in: index */
+	ulint		latch_mode,	/*!< in: BTR_SEARCH_LEAF, ... */
+	btr_cur_t**	cursor_pio,		/*!< in/out: B-tree cursor */
+	const char*	file,		/*!< in: file name */
+	ulint		line,		/*!< in: line where called */
+	mtr_t*		mtr);		/*!< in: mtr */
+#define btr_cur_open_pio(pt,pip,i,l,c,m)				\
+	btr_cur_open_pio_func(pt,pip,i,l,c,__FILE__,__LINE__,m)
 
 /**********************************************************************//**
 Positions a cursor at a randomly chosen position within a B-tree.

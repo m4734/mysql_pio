@@ -5471,6 +5471,11 @@ fil_io(
 	void*			buf,
 	void*			message)
 {
+
+//cgmin
+DBUG_ENTER("cgmin fil_io");
+
+
 	os_offset_t		offset;
 	IORequest		req_type(type);
 
@@ -5565,6 +5570,7 @@ fil_io(
 				<< ", I/O length: " << len << " bytes";
 		}
 
+DBUG_RETURN(DB_TABLESPACE_DELETED);
 		return(DB_TABLESPACE_DELETED);
 	}
 
@@ -5579,6 +5585,8 @@ fil_io(
 
 			if (req_type.ignore_missing()) {
 				mutex_exit(&fil_system->mutex);
+
+DBUG_RETURN(DB_ERROR);
 				return(DB_ERROR);
 			}
 
@@ -5610,6 +5618,8 @@ fil_io(
 				tablespace bounds when recovering from a crash
 				happened during a truncation */
 				mutex_exit(&fil_system->mutex);
+
+DBUG_RETURN(DB_TABLESPACE_TRUNCATED);
 				return(DB_TABLESPACE_TRUNCATED);
 			}
 
@@ -5638,6 +5648,7 @@ fil_io(
 					<< ", I/O length: " << len << " bytes";
 			}
 
+DBUG_RETURN(DB_TABLESPACE_DELETED);
 			return(DB_TABLESPACE_DELETED);
 		}
 
@@ -5660,6 +5671,8 @@ fil_io(
 			what to do. */
 			fil_node_complete_io(node, fil_system, req_type);
 			mutex_exit(&fil_system->mutex);
+
+DBUG_RETURN(DB_ERROR);
 			return(DB_ERROR);
 		}
 
@@ -5793,6 +5806,7 @@ fil_io(
 		ut_ad(fil_validate_skip());
 	}
 
+DBUG_RETURN(err);
 	return(err);
 }
 

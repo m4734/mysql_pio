@@ -239,6 +239,15 @@ row_search_mvcc(
 	ulint		match_mode,
 	ulint		direction)
 	MY_ATTRIBUTE((warn_unused_result));
+dberr_t
+row_search_mvcc(
+	byte*		buf,
+	page_cur_mode_t	mode,
+	row_prebuilt_t*	prebuilt,
+	ulint		match_mode,
+	ulint		direction
+, int pio_t)
+	MY_ATTRIBUTE((warn_unused_result));
 
 /********************************************************************//**
 Count rows in a R-Tree leaf level.

@@ -38,6 +38,10 @@
 #include "sql_tmp_table.h"    // create_tmp_table
 #include "json_dom.h"    // Json_wrapper
 
+//cgmin
+#include <sys/time.h>
+
+
 #include <algorithm>
 using std::max;
 using std::min;
@@ -1262,16 +1266,96 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
   const bool pfs_batch_update= qep_tab->pfs_batch_update(join);
   if (pfs_batch_update)
     qep_tab->table()->file->start_psi_batch_mode();
+
+
+
+//cgmin
+//struct timeval ttt,ttt2;
+
+//cgmin
+
+/**
+  A context for reading through a single table using a chosen access method:
+  index read, scan, etc, use of cache, etc.
+  
+  Use by:
+@code
+  READ_RECORD read_record;
+  if (init_read_record(&read_record, ...))
+    return TRUE;
+  while (read_record.read_record())
+  {
+    ...
+  }
+  end_read_record();
+@endcode        
+*/
+/*
+DBUG_PRINT("cgmin", ("pio start"));
+
+while (rc == NESTED_LOOP_OK)
+{
+	int error;
+
+//gettimeofday(&ttt,NULL);
+
+	if (in_first_read)
+	{
+		in_first_read = false;
+		error= (*qep_tab->read_first_record)(qep_tab);
+	}
+	else
+		error= info->read_record(info);
+
+//gettimeofday(&ttt2,NULL);
+//DBUG_PRINT("cgmin",("pio read_record %ld --- %ld:%ld-%ld:%ld",(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec),ttt2.tv_sec,ttt2.tv_usec,ttt.tv_sec,ttt.tv_usec));
+
+
+	if (error > 0 || (join->thd->is_error()))
+		rc = NESTED_LOOP_ERROR;
+	else if (error < 0)
+		break;
+	else if (join->thd->killed)
+	{
+		join->thd->send_kill_message();
+		rc= NESTED_LOOP_KILLED;
+	}
+}
+
+DBUG_PRINT("cgmin",( "pio end"));
+*/
+printf("sub_sel\n");
+
+//printf("cgmin\n");
+
+//rc = NESTED_LOOP_OK;
+//in_first_read = true;
+
+
+//cgmin
+
+
+
+
+
   while (rc == NESTED_LOOP_OK && join->return_tab >= qep_tab_idx)
   {
     int error;
+
+//cgmin
+//gettimeofday(&ttt,NULL);
+
     if (in_first_read)
     {
       in_first_read= false;
-      error= (*qep_tab->read_first_record)(qep_tab);
+	      error= (*qep_tab->read_first_record)(qep_tab);
     }
     else
       error= info->read_record(info);
+
+//cgmin
+//gettimeofday(&ttt2,NULL);
+//DBUG_PRINT("cgmin",("read_record %ld --- %ld:%ld-%ld:%ld",(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec),ttt2.tv_sec,ttt2.tv_usec,ttt.tv_sec,ttt.tv_usec));
 
     DBUG_EXECUTE_IF("bug13822652_1", join->thd->killed= THD::KILL_QUERY;);
 
@@ -1290,6 +1374,11 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
         qep_tab->table()->file->position(qep_tab->table()->record[0]);
       rc= evaluate_join_record(join, qep_tab);
     }
+
+//cgmin
+//gettimeofday(&ttt,NULL);
+//DBUG_PRINT("cgmin",("evaluate_join_record %ld --- %ld:%ld-%ld:%ld",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec),ttt.tv_sec,ttt.tv_usec,ttt2.tv_sec,ttt2.tv_usec));
+
   }
 
   if (rc == NESTED_LOOP_OK &&
@@ -2474,7 +2563,8 @@ int join_init_read_record(QEP_TAB *tab)
   if (init_read_record(&tab->read_record, tab->join()->thd, NULL, tab,
                        1, 1, FALSE))
     return 1;
-
+	if (*tab->read_record.read_record == rr_sequential)
+		return (rr_sequential_pio(&tab->read_record));
   return (*tab->read_record.read_record)(&tab->read_record);
 }
 

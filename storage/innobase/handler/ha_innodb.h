@@ -164,7 +164,11 @@ public:
 	int rnd_next(uchar *buf);
 
 //cgmin
+<<<<<<< HEAD
 	int rnd_next_pio(uchar *buf,int t);
+=======
+	int rnd_next_pio(uchar *buf,int pio_t);
+>>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 
 	int rnd_pos(uchar * buf, uchar *pos);
 

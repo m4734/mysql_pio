@@ -240,7 +240,10 @@ btr_cur_open_at_index_side_func(
 	btr_cur_open_at_index_side_func(f,i,l,c,lv,__FILE__,__LINE__,m)
 
 //cgmin
+<<<<<<< HEAD
 #if 0
+=======
+>>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 void set_pcur_pos_pio_func(int pio_t,btr_pcur_t* pcur_pio,ulint* page_id_pio,btr_pcur_t* temp_pcur_pio,
 	bool		from_left,	/*!< in: true if open to the low end,
 					false if to the high end */
@@ -254,7 +257,11 @@ void set_pcur_pos_pio_func(int pio_t,btr_pcur_t* pcur_pio,ulint* page_id_pio,btr
 	mtr_t*		mtr);		/*!< in/out: mini-transaction */
 #define set_pcur_pos_pio(pt,pp,pip,tpp,f,i,l,c,lv,m)			\
 	set_pcur_pos_pio_func(pt,pp,pip,tpp,f,i,l,c,lv,__FILE__,__LINE__,m)
+<<<<<<< HEAD
 #endif
+=======
+
+>>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 
 /** Opens a cursor at either end of an index.
 Avoid taking latches on buffer, just pin (by incrementing fix_count)

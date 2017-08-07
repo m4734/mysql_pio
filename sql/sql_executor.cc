@@ -1324,8 +1324,18 @@ while (rc == NESTED_LOOP_OK)
 
 DBUG_PRINT("cgmin",( "pio end"));
 */
+<<<<<<< HEAD
 printf("sub_sel\n");
 
+=======
+	/*
+if (info->read_record == rr_sequential)
+{
+	(*qep_tab->read_first_record)(qep_tab);
+	info->read_record_pio(info);
+}
+*/
+>>>>>>> 0766fb256f49d9234a854dbbbfa98179981cbc3c
 //printf("cgmin\n");
 
 //rc = NESTED_LOOP_OK;

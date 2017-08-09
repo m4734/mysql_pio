@@ -3355,14 +3355,15 @@ for (i=0;i<n_cnt_pio[sv_pio];i++)
 			block_pio[sv_pio][i] = buf_page_get_gen(*page_id_pio[sv_pio][i],page_size,RW_NO_LATCH,NULL,BUF_GET,file,line,mtr); //latch????
 			page = buf_block_get_frame(block_pio[sv_pio][i]);
 		}
-		page_cur_set_before_first(block_pio[sv_pio][i],btr_cur_get_page_cur(cursor_pio[i]));
+		page_cur_set_after_last(block_pio[sv_pio][i],btr_cur_get_page_cur(cursor_pio[i]));
 		delete(page_cursor_pio);
 	}
 
 	for (i=0;i<*pio_t;++i)
 	{
 		page_id_pio_i[i] = page_id_pio[sv_pio][i]->page_no();
-printf("page_id_pio_i %d\n",page_id_pio_i[i]);
+//		btr_cur_get_page_cur(cursor_pio[i])->index = index; //???
+//printf("page_id_pio_i %d\n",page_id_pio_i[i]);
 		delete(page_id_pio[0][i]);
 		delete(page_id_pio[1][i]);
 	}

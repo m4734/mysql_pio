@@ -423,16 +423,13 @@ DBUG_ENTER("cgmin_btr_pcur_move_to_next_page");
 	page_t*		next_page;
 	ulint		mode;
 	dict_table_t*	table = btr_pcur_get_btr_cur(cursor)->index->table;
-
 	ut_ad(cursor->pos_state == BTR_PCUR_IS_POSITIONED);
 	ut_ad(cursor->latch_mode != BTR_NO_LATCHES);
 	ut_ad(btr_pcur_is_after_last_on_page(cursor));
 
 	cursor->old_stored = false;
-
 	page = btr_pcur_get_page(cursor);
 	next_page_no = btr_page_get_next(page, mtr);
-
 	ut_ad(next_page_no != FIL_NULL);
 
 	mode = cursor->latch_mode;
@@ -451,7 +448,6 @@ DBUG_ENTER("cgmin_btr_pcur_move_to_next_page");
 	}
 
 	buf_block_t*	block = btr_pcur_get_block(cursor);
-
 	next_block = btr_block_get(
 		page_id_t(block->page.id.space(), next_page_no),
 		block->page.size, mode,
@@ -463,9 +459,7 @@ DBUG_ENTER("cgmin_btr_pcur_move_to_next_page");
 	ut_a(btr_page_get_prev(next_page, mtr)
 	     == btr_pcur_get_block(cursor)->page.id.page_no());
 #endif /* UNIV_BTR_DEBUG */
-
 	btr_leaf_page_release(btr_pcur_get_block(cursor), mode, mtr);
-
 	page_cur_set_before_first(next_block, btr_pcur_get_page_cur(cursor));
 
 	ut_d(page_check_dir(next_page));

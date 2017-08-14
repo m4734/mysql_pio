@@ -1270,7 +1270,6 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
 
 
 //cgmin
-//struct timeval ttt,ttt2;
 
 //cgmin
 
@@ -1324,7 +1323,8 @@ while (rc == NESTED_LOOP_OK)
 
 DBUG_PRINT("cgmin",( "pio end"));
 */
-printf("sub_sel\n");
+
+//printf("sub_sel\n");
 
 //printf("cgmin\n");
 
@@ -1334,8 +1334,10 @@ printf("sub_sel\n");
 
 //cgmin
 
+//int s1=0,s2=0,s0=0;
+//struct timeval ttt,ttt2;
 
-
+//gettimeofday(&ttt2,NULL);
 
 
   while (rc == NESTED_LOOP_OK && join->return_tab >= qep_tab_idx)
@@ -1349,14 +1351,18 @@ printf("sub_sel\n");
     {
       in_first_read= false;
 	      error= (*qep_tab->read_first_record)(qep_tab);
-    }
+// gettimeofday(&ttt2,NULL);
+//s0+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
+   }
     else
+{
       error= info->read_record(info);
 
 //cgmin
 //gettimeofday(&ttt2,NULL);
-//DBUG_PRINT("cgmin",("read_record %ld --- %ld:%ld-%ld:%ld",(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec),ttt2.tv_sec,ttt2.tv_usec,ttt.tv_sec,ttt.tv_usec));
-
+//printf("rr %ld ",(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec));
+//s1+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
+}
     DBUG_EXECUTE_IF("bug13822652_1", join->thd->killed= THD::KILL_QUERY;);
 
     if (error > 0 || (join->thd->is_error()))   // Fatal error
@@ -1377,10 +1383,14 @@ printf("sub_sel\n");
 
 //cgmin
 //gettimeofday(&ttt,NULL);
-//DBUG_PRINT("cgmin",("evaluate_join_record %ld --- %ld:%ld-%ld:%ld",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec),ttt.tv_sec,ttt.tv_usec,ttt2.tv_sec,ttt2.tv_usec));
+//printf("ejr %ld ",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec));
+//s2+=(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec);
+
 
   }
-
+//gettimeofday(&ttt,NULL);
+//printf("evaluate_join_record %ld --- %ld:%ld-%ld:%ld\n",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec),ttt.tv_sec,ttt.tv_usec,ttt2.tv_sec,ttt2.tv_usec);
+//printf("s0 %d\ns1 %d\ns2 %d\n",s0,s1,s2);
   if (rc == NESTED_LOOP_OK &&
       qep_tab->last_inner() != NO_PLAN_IDX &&
       !qep_tab->found)

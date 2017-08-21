@@ -4580,7 +4580,7 @@ row_search_mvcc(
 	adaptive hash index latch if there is someone waiting behind */
 
 //cgmin
-DBUG_PRINT("cgmin",("p0"));
+//DBUG_PRINT("cgmin",("p0"));
 
 	if (trx->has_search_latch
 #ifndef INNODB_RW_LOCKS_USE_ATOMICS
@@ -4607,7 +4607,7 @@ DBUG_PRINT("cgmin",("p0"));
 	/* PHASE 1: Try to pop the row from the prefetch cache */
 
 //cgmin
-DBUG_PRINT("cgmin",("p1"));
+//DBUG_PRINT("cgmin",("p1"));
 
 	if (UNIV_UNLIKELY(direction == 0)) {
 		trx->op_info = "starting index read";
@@ -4721,7 +4721,7 @@ DBUG_PRINT("cgmin",("p1"));
 	/* PHASE 2: Try fast adaptive hash index search if possible */
 
 //cgmin
-DBUG_PRINT("cgmin",("p2"));
+//DBUG_PRINT("cgmin",("p2"));
 
 	/* Next test if this is the special case where we can use the fast
 	adaptive hash index to try the search. Since we must release the
@@ -4849,7 +4849,7 @@ DBUG_PRINT("cgmin",("p2"));
 	/* PHASE 3: Open or restore index cursor position */
 
 //cgmin
-DBUG_PRINT("cgmin",("p3"));
+//DBUG_PRINT("cgmin",("p3"));
 
 	trx_search_latch_release_if_reserved(trx);
 
@@ -5059,14 +5059,15 @@ if (pio_t > 0)
 	btr_pcur_t pcur_pio[128];
 	ulint page_id_pio[128];
 	mtr_t mtr_pio[128];
+	mtr_t mtr0;
 	printf("pp\n");
 	printf("pio_t %d\n",pio_t);
-	prepare_pio(&pio_t,pcur_pio,page_id_pio,mode == PAGE_CUR_G,index,BTR_SEARCH_LEAF,pcur,false,0,&mtr);
+	prepare_pio(&pio_t,pcur_pio,page_id_pio,mode == PAGE_CUR_G,index,BTR_SEARCH_LEAF,pcur,false,0,&mtr0);
 	printf("pio_t %d\n",pio_t);
 	printf("dp\n");
 	do_pio(&pio_t,pcur_pio,page_id_pio,mtr_pio);
 	printf("cp\n");
-	close_pio(&pio_t,pcur_pio,&mtr);
+	close_pio(&pio_t,pcur_pio,&mtr0);
 	printf("ep\n");
 
 }
@@ -5089,7 +5090,7 @@ rec_loop:
 	/* PHASE 4: Look for matching records in a loop */
 
 //cgmin
-DBUG_PRINT("cgmin",("p4"));
+//DBUG_PRINT("cgmin",("p4"));
 
 	rec = btr_pcur_get_rec(pcur);
 
@@ -5885,7 +5886,7 @@ next_rec:
 	/* PHASE 5: Move the cursor to the next index record */
 
 //cgmin
-DBUG_PRINT("cgmin",("p5"));
+//DBUG_PRINT("cgmin",("p5"));
 
 	/* NOTE: For moves_up==FALSE, the mini-transaction will be
 	committed and restarted every time when switching b-tree

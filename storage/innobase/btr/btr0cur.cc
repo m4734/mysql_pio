@@ -3285,7 +3285,7 @@ for (i=0;i<n_cnt_pio[sv_pio];i++)
 			page_cur_t* page_cursor_pio = new page_cur_t;
 			page_cur_set_before_first(block_pio[sv_pio][i],page_cursor_pio);
 			page_cur_move_to_next(page_cursor_pio);
-	printf("n_recs %d\n",n_recs);
+//	printf("n_recs %d\n",n_recs);
 			for (j=0;j<n_recs-2;j++)
 			{
 				if (i == 0 && j == 0)
@@ -3298,7 +3298,7 @@ for (i=0;i<n_cnt_pio[sv_pio];i++)
 ++rec_cnt;
 	continue;				
 					}
-				printf("j %d\n",j);
+//				printf("j %d\n",j);
 			node_ptr = page_cur_get_rec(page_cursor_pio);
 			offsets = rec_get_offsets(node_ptr, cursor->index, offsets,
 					  ULINT_UNDEFINED, &heap);

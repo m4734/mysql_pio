@@ -1089,12 +1089,15 @@ void *ptf_pio(void *data)
 	ulint page_id_pio = ((data_pio*)data)->page_id_pio;
 	mtr_t* mtr = ((data_pio*)data)->mtr;
 
-printf("pio s %lu\n",page_id_pio);
+//printf("pio s %lu\n",page_id_pio);
+printf("ptf s   %lu %lu\n",(ulint)btr_pcur_get_block(cursor)->page.id.page_no(),(ulint)page_id_pio);
 
 	ut_ad(cursor->pos_state == BTR_PCUR_IS_POSITIONED);
 	ut_ad(cursor->latch_mode != BTR_NO_LATCHES);
 
 	cursor->old_stored = false;
+
+mtr->start();
 
 //	printf("%lu %lu\n",(ulint)btr_pcur_get_block(cursor)->page.id.page_no(),(ulint)page_id_pio);
 //	printf("%d\n",(int)btr_pcur_is_after_last_in_tree(cursor,mtr));
@@ -1107,8 +1110,8 @@ if (btr_pcur_get_block(cursor)->page.id.page_no() == (ulint)page_id_pio)
 	pthread_exit(NULL);
 */
 	while (btr_pcur_is_after_last_in_tree(cursor,mtr) == false &&
-// (ulint)btr_page_get_next(btr_pcur_get_page(cursor),mtr) != (ulint)page_id_pio)
-(ulint)btr_pcur_get_block(cursor)->page.id.page_no() != (ulint)page_id_pio)
+ (ulint)btr_page_get_next(btr_pcur_get_page(cursor),mtr) != (ulint)page_id_pio)
+//(ulint)btr_pcur_get_block(cursor)->page.id.page_no() != (ulint)page_id_pio)
 	{
 
 //printf("   %lu %lu\n",(ulint)btr_pcur_get_block(cursor)->page.id.page_no(),(ulint)page_id_pio);
@@ -1118,15 +1121,16 @@ if (btr_pcur_get_block(cursor)->page.id.page_no() == (ulint)page_id_pio)
 
 
 	}
-	btr_leaf_page_release(btr_pcur_get_block(cursor), cursor->latch_mode, mtr);
+printf("ptf f   %lu %lu\n",(ulint)btr_pcur_get_block(cursor)->page.id.page_no(),(ulint)page_id_pio);
+	btr_leaf_page_release(btr_pcur_get_block(cursor), BTR_SEARCH_LEAF, mtr);///?????????????????????cursor->latch_mode
 //	btr_leaf_page_release(btr_pcur_get_block(&pcur_pio[i]), pcur_pio[i].latch_mode, mtr);
 
 
-mtr->commit();
+//mtr->commit();
 btr_pcur_close(cursor);
+mtr->commit();
 
-
-printf("pio f %lu\n",page_id_pio);
+//printf("pio f %lu\n",page_id_pio);
 	pthread_exit(NULL);
 }
 UNIV_INLINE
@@ -1141,7 +1145,7 @@ void do_pio(int *pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,mtr_t* mtr_pio)
 	{
 //		if (page_id_pio[i] == 0)
 //			continue;
-mtr_pio[i].start();
+//mtr_pio[i].start();
 		data[i].pcur_pio=&pcur_pio[i];
 		data[i].mtr = &mtr_pio[i];
 		if (i == *pio_t-1)
@@ -1158,20 +1162,13 @@ mtr_pio[i].start();
 //			ptf_pio(&pcur_pio[i],page_id_pio[i+1]);
 	}
 
-
-
-
 /*
 	for (i=0;i<*pio_t;++i)
 {
 		pthread_join(pthread[i],NULL);
-mtr_pio[i].commit();
+//mtr_pio[i].commit();
 }
 */
-
-
-
-
 
 }
 UNIV_INLINE

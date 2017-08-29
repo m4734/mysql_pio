@@ -3285,7 +3285,7 @@ for (i=0;i<n_cnt_pio[sv_pio];i++)
 			page_cur_t* page_cursor_pio = new page_cur_t;
 			page_cur_set_before_first(block_pio[sv_pio][i],page_cursor_pio);
 			page_cur_move_to_next(page_cursor_pio);
-//	printf("n_recs %d\n",n_recs);
+	printf("n_recs %d\n",(int)n_recs);
 			for (j=0;j<n_recs-2;j++)
 			{
 				if (i == 0 && j == 0)
@@ -3298,7 +3298,7 @@ for (i=0;i<n_cnt_pio[sv_pio];i++)
 ++rec_cnt;
 	continue;				
 					}
-//				printf("j %d\n",j);
+				printf("j %d\n",(int)j);
 			node_ptr = page_cur_get_rec(page_cursor_pio);
 			offsets = rec_get_offsets(node_ptr, cursor->index, offsets,
 					  ULINT_UNDEFINED, &heap);
@@ -3327,11 +3327,11 @@ for (i=0;i<n_cnt_pio[sv_pio];i++)
 		sv_pio = 1-sv_pio;
 
 	}
-
+/*
 	if (UNIV_LIKELY_NULL(heap)) {
 		mem_heap_free(heap);
 	}
-
+*/
 
 
 	for (i=0;i<n_cnt_pio[sv_pio];i++)
@@ -3352,10 +3352,18 @@ for (i=0;i<n_cnt_pio[sv_pio];i++)
 						tree_savepoints_pio[sv_pio][i],
 						block_pio[sv_pio][i]);
 			tree_savepoints_pio[sv_pio][i] = mtr_set_savepoint(mtr);
-			block_pio[sv_pio][i] = buf_page_get_gen(*page_id_pio[sv_pio][i],page_size,RW_NO_LATCH,NULL,BUF_GET,file,line,mtr); //latch????
+			block_pio[sv_pio][i] = buf_page_get_gen(*page_id_pio[sv_pio][i],page_size,RW_S_LATCH,NULL,BUF_GET,file,line,mtr); //latch????
 			page = buf_block_get_frame(block_pio[sv_pio][i]);
 		}
 		page_cur_set_after_last(block_pio[sv_pio][i],btr_cur_get_page_cur(cursor_pio[i]));
+// mtr_pio lock???
+//int xxx = block_pio[sv_pio][i]->page.buf_fix_count;
+					mtr_release_block_at_savepoint(
+						mtr,
+						tree_savepoints_pio[sv_pio][i],
+						block_pio[sv_pio][i]);
+//printf("xx %d %d\n",xxx,block_pio[sv_pio][i]->page.buf_fix_count);
+
 		delete(page_cursor_pio);
 	}
 
@@ -3370,7 +3378,12 @@ for (i=0;i<n_cnt_pio[sv_pio];i++)
 
 	*pio_t = n_cnt_pio[sv_pio];
 
+
 	delete(cursor);
+
+	if (UNIV_LIKELY_NULL(heap)) {
+		mem_heap_free(heap);
+	}
 
 	return(true);
 }

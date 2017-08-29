@@ -5937,17 +5937,23 @@ buf_all_freed_instance(
 
 	chunk = buf_pool->chunks;
 
+//	int xxx=1;
+
 	for (i = buf_pool->n_chunks; i--; chunk++) {
 
 		const buf_block_t* block = buf_chunk_not_freed(chunk);
 
 		if (UNIV_LIKELY_NULL(block)) {
+//xxx = 0;
+//printf("Page %d still fixed or dirty\n",(int)block->page.id.page_no());
 			ib::fatal() << "Page " << block->page.id
 				<< " still fixed or dirty";
 		}
 	}
 
 	buf_pool_mutex_exit(buf_pool);
+
+//return xxx;
 
 	return(TRUE);
 }

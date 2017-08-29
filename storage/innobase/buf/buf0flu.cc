@@ -580,7 +580,8 @@ buf_flush_ready_for_replace(
 	ut_ad(bpage->in_LRU_list);
 
 	if (buf_page_in_file(bpage)) {
-
+//cgmin
+//printf("oldest %d / buf %d / fix %d\n",(int)bpage->oldest_modification,(int)bpage->buf_fix_count,(int)buf_page_get_io_fix(bpage));
 		return(bpage->oldest_modification == 0
 		       && bpage->buf_fix_count == 0
 		       && buf_page_get_io_fix(bpage) == BUF_IO_NONE);

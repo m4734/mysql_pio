@@ -5062,12 +5062,12 @@ if (pio_t > 0)
 	mtr_t mtr0;
 	printf("pp\n");
 	printf("pio_t %d\n",pio_t);
-	prepare_pio(&pio_t,pcur_pio,page_id_pio,mode == PAGE_CUR_G,index,BTR_SEARCH_LEAF,pcur,false,0,&mtr0);
+	prepare_pio(&pio_t,pcur_pio,page_id_pio,mtr_pio,mode == PAGE_CUR_G,index,BTR_SEARCH_LEAF,pcur,false,0,&mtr0);
 	printf("pio_t %d\n",pio_t);
 	printf("dp\n");
 	do_pio(&pio_t,pcur_pio,page_id_pio,mtr_pio);
-	printf("cp\n");
-	close_pio(&pio_t,pcur_pio,&mtr0);
+//	printf("cp\n");
+//	close_pio(&pio_t,pcur_pio,&mtr0);
 	printf("ep\n");
 
 }

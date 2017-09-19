@@ -3845,6 +3845,70 @@ row_sel_dequeue_cached_row_for_mysql(
 	if (prebuilt->n_fetch_cached == 0) {
 		prebuilt->fetch_cache_first = 0;
 	}
+//cgmin
+//printf("dequeue\n");
+}
+
+//cgmin
+UNIV_INLINE
+void
+row_sel_dequeue_cached_row_for_mysql_pio(
+/*=================================*/
+	byte*		buf,		/*!< in/out: buffer where to copy the
+					row */
+	row_prebuilt_t*	prebuilt,
+	ulint 		pio_tn)	/*!< in: prebuilt struct */
+{
+	ulint			i;
+	const mysql_row_templ_t*templ;
+	const byte*		cached_rec;
+	ut_ad(prebuilt->n_fetch_cached > 0);
+	ut_ad(prebuilt->mysql_prefix_len <= prebuilt->mysql_row_len);
+
+	ulint level = prebuilt->fetch_cache_pio_level; 
+
+	UNIV_MEM_ASSERT_W(buf, prebuilt->mysql_row_len);
+
+	cached_rec = prebuilt->fetch_cache[prebuilt->fetch_cache_pio_level * prebuilt->fetch_cache_pio_tn + pio_tn];
+
+	if (UNIV_UNLIKELY(prebuilt->keep_other_fields_on_keyread)) {
+		row_sel_copy_cached_fields_for_mysql(buf, cached_rec, prebuilt);
+	} else if (prebuilt->mysql_prefix_len > 63) {
+		/* The record is long. Copy it field by field, in case
+		there are some long VARCHAR column of which only a
+		small length is being used. */
+		UNIV_MEM_INVALID(buf, prebuilt->mysql_prefix_len);
+
+		/* First copy the NULL bits. */
+		ut_memcpy(buf, cached_rec, prebuilt->null_bitmap_len);
+		/* Then copy the requested fields. */
+
+		for (i = 0; i < prebuilt->n_template; i++) {
+			templ = prebuilt->mysql_template + i;
+
+			/* Skip virtual columns */
+			if (templ->is_virtual
+			    && !(dict_index_has_virtual(prebuilt->index)
+				 && prebuilt->read_just_key)) {
+				continue;
+			}
+
+			row_sel_copy_cached_field_for_mysql(
+				buf, cached_rec, templ);
+		}
+	} else {
+		ut_memcpy(buf, cached_rec, prebuilt->mysql_prefix_len);
+	}
+/*
+	prebuilt->n_fetch_cached--;
+	prebuilt->fetch_cache_first++;
+
+	if (prebuilt->n_fetch_cached == 0) {
+		prebuilt->fetch_cache_first = 0;
+	}
+*/
+//cgmin
+//printf("dequeue\n");
 }
 
 /********************************************************************//**
@@ -3873,6 +3937,38 @@ row_sel_prefetch_cache_init(
 		ptr += 4;
 
 		prebuilt->fetch_cache[i] = ptr;
+		ptr += prebuilt->mysql_row_len;
+
+		mach_write_to_4(ptr, ROW_PREBUILT_FETCH_MAGIC_N);
+		ptr += 4;
+	}
+}
+
+//cgmin
+UNIV_INLINE
+void
+row_sel_prefetch_cache_init_pio(
+/*========================*/
+	row_prebuilt_t*	prebuilt)	/*!< in/out: prebuilt struct */
+{
+	ulint	i;
+	ulint	sz;
+	byte*	ptr;
+
+	/* Reserve space for the magic number. */
+	sz = UT_ARR_SIZE(prebuilt->fetch_cache_pio) * (prebuilt->mysql_row_len + 8);
+	ptr = static_cast<byte*>(ut_malloc_nokey(sz));
+
+	for (i = 0; i < UT_ARR_SIZE(prebuilt->fetch_cache_pio); i++) {
+
+		/* A user has reported memory corruption in these
+		buffers in Linux. Put magic numbers there to help
+		to track a possible bug. */
+
+		mach_write_to_4(ptr, ROW_PREBUILT_FETCH_MAGIC_N);
+		ptr += 4;
+
+		prebuilt->fetch_cache_pio[i] = ptr;
 		ptr += prebuilt->mysql_row_len;
 
 		mach_write_to_4(ptr, ROW_PREBUILT_FETCH_MAGIC_N);
@@ -3925,6 +4021,8 @@ row_sel_enqueue_cache_row_for_mysql(
 	}
 
 	++prebuilt->n_fetch_cached;
+//cgmin
+//printf("enqueue\n");
 }
 
 /*********************************************************************//**
@@ -5790,6 +5888,7 @@ requires_clust_rec:
 		}
 
 		if (prebuilt->n_fetch_cached < MYSQL_FETCH_CACHE_SIZE) {
+//printf("nfc %d\n",(int)prebuilt->n_fetch_cached);
 			goto next_rec;
 		}
 

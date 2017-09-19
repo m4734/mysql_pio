@@ -648,6 +648,12 @@ struct mysql_row_templ_t {
 /* After fetching this many rows, we start caching them in fetch_cache */
 #define MYSQL_FETCH_CACHE_THRESHOLD	4
 
+//cgmin
+#define MYSQL_PIO_MAX_T		8
+#define MYSQL_PIO_MAX_LEVEL	10
+
+
+
 #define ROW_PREBUILT_ALLOCATED	78540783
 #define ROW_PREBUILT_FREED	26423527
 
@@ -831,6 +837,13 @@ struct row_prebuilt_t {
 					allocated mem buf start, because
 					there is a 4 byte magic number at the
 					start and at the end */
+
+//cgmin
+	byte*		fetch_cache_pio[MYSQL_PIO_MAX_T * MYSQL_PIO_MAX_LEVEL];
+	ulint		fetch_cache_pio_level:0;
+	ulint		fetch_cache_pio_tn:8;
+
+
 	ibool		keep_other_fields_on_keyread; /*!< when using fetch
 					cache with HA_EXTRA_KEYREAD, don't
 					overwrite other fields in mysql row

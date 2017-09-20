@@ -3857,7 +3857,8 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 	byte*		buf,		/*!< in/out: buffer where to copy the
 					row */
 	row_prebuilt_t*	prebuilt,
-	ulint 		pio_tn)	/*!< in: prebuilt struct */
+	ulint		level,
+	ulint 		tn)	/*!< in: prebuilt struct */
 {
 	ulint			i;
 	const mysql_row_templ_t*templ;
@@ -3865,11 +3866,9 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 	ut_ad(prebuilt->n_fetch_cached > 0);
 	ut_ad(prebuilt->mysql_prefix_len <= prebuilt->mysql_row_len);
 
-	ulint level = prebuilt->fetch_cache_pio_level; 
-
 	UNIV_MEM_ASSERT_W(buf, prebuilt->mysql_row_len);
 
-	cached_rec = prebuilt->fetch_cache[prebuilt->fetch_cache_pio_level * prebuilt->fetch_cache_pio_tn + pio_tn];
+	cached_rec = prebuilt->fetch_cache[level * prebuilt->fetch_cache_pio_max_tn + tn];
 
 	if (UNIV_UNLIKELY(prebuilt->keep_other_fields_on_keyread)) {
 		row_sel_copy_cached_fields_for_mysql(buf, cached_rec, prebuilt);
@@ -3899,6 +3898,11 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 	} else {
 		ut_memcpy(buf, cached_rec, prebuilt->mysql_prefix_len);
 	}
+
+	prebuilt->fetch_cache_pio_check[level * prebuilt->fetch_cache_pio_max_tn + tn] = false;
+
+	//faa
+
 /*
 	prebuilt->n_fetch_cached--;
 	prebuilt->fetch_cache_first++;
@@ -3955,6 +3959,12 @@ row_sel_prefetch_cache_init_pio(
 	ulint	sz;
 	byte*	ptr;
 
+	prebuilt->fetch_cache_pio_level = 0;
+	prebuilt->fetch_cache_pio_tn = 0;
+	prebuilt->fetch_cache_pio_max_level = 10; // ??
+	prebuilt->fetch_cache_pio_max_tn = 8; // ??
+	
+
 	/* Reserve space for the magic number. */
 	sz = UT_ARR_SIZE(prebuilt->fetch_cache_pio) * (prebuilt->mysql_row_len + 8);
 	ptr = static_cast<byte*>(ut_malloc_nokey(sz));
@@ -3974,6 +3984,12 @@ row_sel_prefetch_cache_init_pio(
 		mach_write_to_4(ptr, ROW_PREBUILT_FETCH_MAGIC_N);
 		ptr += 4;
 	}
+
+	for (i=0;i<prebuilt->fetch_cache_pio_max_level*prebuilt->fetch_cache_pio_max_tn;++i)
+		prebuilt->fetch_cache_pio_check[i] = false;
+	for (i=0;i<prebuilt->fetch_cache_pio_max_level;++i)
+		prebuilt->fetch_cache_pio_check_sum[i] = 0;
+
 }
 
 /********************************************************************//**
@@ -4021,6 +4037,37 @@ row_sel_enqueue_cache_row_for_mysql(
 	}
 
 	++prebuilt->n_fetch_cached;
+//cgmin
+//printf("enqueue\n");
+}
+
+//cgmin
+UNIV_INLINE
+void
+row_sel_enqueue_cache_row_for_mysql_pio(
+/*================================*/
+	byte*		mysql_rec,	/*!< in/out: MySQL record */
+	row_prebuilt_t*	prebuilt,
+	ulint tn,
+	ulint level
+)	/*!< in/out: prebuilt struct */
+{
+	/* For non ICP code path the row should already exist in the
+	next fetch cache slot. */
+
+	if (prebuilt->idx_cond != NULL) {
+//		byte*	dest = row_sel_fetch_last_buf(prebuilt);
+
+//		ut_memcpy(dest, mysql_rec, prebuilt->mysql_row_len);
+		ut_memcpy(prebuilt->fetch_cache_pio[level*prebuilt->fetch_cache_pio_max_tn+tn],mysql_rec,prebuilt->mysql_row_len);
+	}
+
+	//poll
+	prebuilt->fetch_cache_pio_check[level*prebuilt->fetch_cache_pio_max_tn+tn] = true;
+
+	//faa
+
+//	++prebuilt->n_fetch_cached;
 //cgmin
 //printf("enqueue\n");
 }
@@ -4583,6 +4630,178 @@ row_search_mvcc(
 	ulint		direction)
 {
 	return row_search_mvcc(buf,mode,prebuilt,match_mode,direction,false);
+}
+dberr_t
+row_search_mvcc_pio(
+	byte*		buf,
+	page_cur_mode_t	mode,
+	row_prebuilt_t*	prebuilt,
+	ulint		match_mode,
+	ulint		direction
+,int pio_t
+)
+{
+	DBUG_ENTER("row_search_mvcc");
+
+	dict_index_t*	index		= prebuilt->index;
+	ibool		comp		= dict_table_is_comp(index->table);
+	const dtuple_t*	search_tuple	= prebuilt->search_tuple;
+	btr_pcur_t*	pcur		= prebuilt->pcur;
+	trx_t*		trx		= prebuilt->trx;
+	dict_index_t*	clust_index;
+	que_thr_t*	thr;
+	const rec_t*	rec;
+	const dtuple_t*	vrow = NULL;
+	const rec_t*	result_rec = NULL;
+	const rec_t*	clust_rec;
+	dberr_t		err				= DB_SUCCESS;
+	ibool		unique_search			= FALSE;
+	ibool		mtr_has_extra_clust_latch	= FALSE;
+	ibool		moves_up			= FALSE;
+	ibool		set_also_gap_locks		= TRUE;
+	/* if the query is a plain locking SELECT, and the isolation level
+	is <= TRX_ISO_READ_COMMITTED, then this is set to FALSE */
+	ibool		did_semi_consistent_read	= FALSE;
+	/* if the returned record was locked and we did a semi-consistent
+	read (fetch the newest committed version), then this is set to
+	TRUE */
+	ulint		next_offs;
+	ibool		same_user_rec;
+	mtr_t		mtr;
+	mem_heap_t*	heap				= NULL;
+	ulint		offsets_[REC_OFFS_NORMAL_SIZE];
+	ulint*		offsets				= offsets_;
+	ibool		table_lock_waited		= FALSE;
+	byte*		next_buf			= 0;
+	bool		spatial_search			= false;
+
+		ulint level = prebuilt->fetch_cache_pio_level;
+		ulint tn = prebuilt->fetch_cache_pio_tn;
+		ulint max_tn = prebuilt->fetch_cache_pio_max_tn;
+		ulint max_level = prebuilt->fetch_cache_pio_max_level;
+
+
+
+	rec_offs_init(offsets_);
+
+	ut_ad(index && pcur && search_tuple);
+	ut_a(prebuilt->magic_n == ROW_PREBUILT_ALLOCATED);
+	ut_a(prebuilt->magic_n2 == ROW_PREBUILT_ALLOCATED);
+
+	/* We don't support FTS queries from the HANDLER interfaces, because
+	we implemented FTS as reversed inverted index with auxiliary tables.
+	So anything related to traditional index query would not apply to
+	it. */
+	if (prebuilt->index->type & DICT_FTS) {
+		DBUG_RETURN(DB_END_OF_INDEX);
+	}
+
+#ifdef UNIV_DEBUG
+	{
+		btrsea_sync_check	check(trx->has_search_latch);
+		ut_ad(!sync_check_iterate(check));
+	}
+#endif /* UNIV_DEBUG */
+
+	if (dict_table_is_discarded(prebuilt->table)) {
+
+		DBUG_RETURN(DB_TABLESPACE_DELETED);
+
+	} else if (prebuilt->table->ibd_file_missing) {
+
+		DBUG_RETURN(DB_TABLESPACE_NOT_FOUND);
+
+	} else if (!prebuilt->index_usable) {
+
+		DBUG_RETURN(DB_MISSING_HISTORY);
+
+	} else if (dict_index_is_corrupted(prebuilt->index)) {
+
+		DBUG_RETURN(DB_CORRUPTION);
+	}
+
+	/* We need to get the virtual column values stored in secondary
+	index key, if this is covered index scan or virtual key read is
+	requested. */
+	bool    need_vrow = dict_index_has_virtual(prebuilt->index)
+		&& (prebuilt->read_just_key
+		    || prebuilt->m_read_virtual_key);
+
+	/*-------------------------------------------------------------*/
+	/* PHASE 0: Release a possible s-latch we are holding on the
+	adaptive hash index latch if there is someone waiting behind */
+
+//cgmin
+//DBUG_PRINT("cgmin",("p0"));
+
+	if (trx->has_search_latch
+#ifndef INNODB_RW_LOCKS_USE_ATOMICS
+	    && rw_lock_get_writer(
+		btr_get_search_latch(index)) != RW_LOCK_NOT_LOCKED
+#endif /* !INNODB_RW_LOCKS_USE_ATOMICS */
+	    ) {
+
+		/* There is an x-latch request on the adaptive hash index:
+		release the s-latch to reduce starvation and wait for
+		BTR_SEA_TIMEOUT rounds before trying to keep it again over
+		calls from MySQL */
+
+		trx_search_latch_release_if_reserved(trx);
+	}
+
+	/* Reset the new record lock info if srv_locks_unsafe_for_binlog
+	is set or session is using a READ COMMITED isolation level. Then
+	we are able to remove the record locks set here on an individual
+	row. */
+	prebuilt->new_rec_locks = 0;
+
+	/*-------------------------------------------------------------*/
+	/* PHASE 1: Try to pop the row from the prefetch cache */
+
+//cgmin
+//DBUG_PRINT("cgmin",("p1"));
+
+	if (UNIV_UNLIKELY(direction == 0)) {
+		trx->op_info = "starting index read";
+
+		prebuilt->n_rows_fetched = 0;
+		prebuilt->n_fetch_cached = 0;
+		prebuilt->fetch_cache_first = 0;
+
+		if (prebuilt->sel_graph == NULL) {
+			/* Build a dummy select query graph */
+			row_prebuild_sel_graph(prebuilt);
+		}
+
+		goto pio_error;
+	} else {
+		trx->op_info = "fetching rows";
+
+		//removed
+
+		while (prebuilt->fetch_cache_pio_check[level*max_tn+tn] == false)
+			printf("aaa!!!\n");
+
+		row_sel_dequeue_cached_row_for_mysql_pio(buf, prebuilt,level,tn);
+
+		++tn;
+		if (max_tn <= tn)
+		{
+			tn = 0;
+			++level;
+			if (max_level <= level)
+				level = 0;
+		}
+
+
+	}
+
+
+pio_error:
+	//error
+	ut_error;
+
+
 }
 dberr_t
 row_search_mvcc(

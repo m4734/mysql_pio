@@ -4643,37 +4643,37 @@ row_search_mvcc_pio(
 {
 	DBUG_ENTER("row_search_mvcc");
 
-	dict_index_t*	index		= prebuilt->index;
-	ibool		comp		= dict_table_is_comp(index->table);
-	const dtuple_t*	search_tuple	= prebuilt->search_tuple;
-	btr_pcur_t*	pcur		= prebuilt->pcur;
+//	dict_index_t*	index		= prebuilt->index;
+//	ibool		comp		= dict_table_is_comp(index->table);
+//	const dtuple_t*	search_tuple	= prebuilt->search_tuple;
+//	btr_pcur_t*	pcur		= prebuilt->pcur;
 	trx_t*		trx		= prebuilt->trx;
-	dict_index_t*	clust_index;
-	que_thr_t*	thr;
-	const rec_t*	rec;
-	const dtuple_t*	vrow = NULL;
-	const rec_t*	result_rec = NULL;
-	const rec_t*	clust_rec;
+//	dict_index_t*	clust_index;
+//	que_thr_t*	thr;
+//	const rec_t*	rec;
+//	const dtuple_t*	vrow = NULL;
+//	const rec_t*	result_rec = NULL;
+//	const rec_t*	clust_rec;
 	dberr_t		err				= DB_SUCCESS;
-	ibool		unique_search			= FALSE;
-	ibool		mtr_has_extra_clust_latch	= FALSE;
-	ibool		moves_up			= FALSE;
-	ibool		set_also_gap_locks		= TRUE;
+//	ibool		unique_search			= FALSE;
+//	ibool		mtr_has_extra_clust_latch	= FALSE;
+//	ibool		moves_up			= FALSE;
+//	ibool		set_also_gap_locks		= TRUE;
 	/* if the query is a plain locking SELECT, and the isolation level
 	is <= TRX_ISO_READ_COMMITTED, then this is set to FALSE */
 	ibool		did_semi_consistent_read	= FALSE;
 	/* if the returned record was locked and we did a semi-consistent
 	read (fetch the newest committed version), then this is set to
 	TRUE */
-	ulint		next_offs;
-	ibool		same_user_rec;
+//	ulint		next_offs;
+//	ibool		same_user_rec;
 	mtr_t		mtr;
 	mem_heap_t*	heap				= NULL;
 	ulint		offsets_[REC_OFFS_NORMAL_SIZE];
-	ulint*		offsets				= offsets_;
-	ibool		table_lock_waited		= FALSE;
-	byte*		next_buf			= 0;
-	bool		spatial_search			= false;
+//	ulint*		offsets				= offsets_;
+//	ibool		table_lock_waited		= FALSE;
+//	byte*		next_buf			= 0;
+//	bool		spatial_search			= false;
 
 		ulint level = prebuilt->fetch_cache_pio_level;
 		ulint tn = prebuilt->fetch_cache_pio_tn;
@@ -4723,9 +4723,7 @@ row_search_mvcc_pio(
 	/* We need to get the virtual column values stored in secondary
 	index key, if this is covered index scan or virtual key read is
 	requested. */
-	bool    need_vrow = dict_index_has_virtual(prebuilt->index)
-		&& (prebuilt->read_just_key
-		    || prebuilt->m_read_virtual_key);
+//	bool    need_vrow = dict_index_has_virtual(prebuilt->index) 		&& (prebuilt->read_just_key		    || prebuilt->m_read_virtual_key);
 
 	/*-------------------------------------------------------------*/
 	/* PHASE 0: Release a possible s-latch we are holding on the
@@ -4792,6 +4790,8 @@ row_search_mvcc_pio(
 			if (max_level <= level)
 				level = 0;
 		}
+		err = DB_SUCCESS;
+		goto func_exit;
 
 
 	}
@@ -4801,6 +4801,29 @@ pio_error:
 	//error
 	ut_error;
 
+func_exit:
+	trx->op_info = "";
+	if (heap != NULL) {
+		mem_heap_free(heap);
+	}
+
+	/* Set or reset the "did semi-consistent read" flag on return.
+	The flag did_semi_consistent_read is set if and only if
+	the record being returned was fetched with a semi-consistent read. */
+	ut_ad(prebuilt->row_read_type != ROW_READ_WITH_LOCKS
+	      || !did_semi_consistent_read);
+
+	if (prebuilt->row_read_type != ROW_READ_WITH_LOCKS) {
+		if (did_semi_consistent_read) {
+			prebuilt->row_read_type = ROW_READ_DID_SEMI_CONSISTENT;
+		} else {
+			prebuilt->row_read_type = ROW_READ_TRY_SEMI_CONSISTENT;
+		}
+	}
+
+	DEBUG_SYNC_C("innodb_row_search_for_mysql_exit");
+
+	DBUG_RETURN(err);
 
 }
 dberr_t

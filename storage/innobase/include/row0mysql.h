@@ -649,7 +649,7 @@ struct mysql_row_templ_t {
 #define MYSQL_FETCH_CACHE_THRESHOLD	4
 
 //cgmin
-#define MYSQL_PIO_MAX_T		8
+#define MYSQL_PIO_MAX_TN	8
 #define MYSQL_PIO_MAX_LEVEL	10
 
 
@@ -839,13 +839,17 @@ struct row_prebuilt_t {
 					start and at the end */
 
 //cgmin
-	byte*		fetch_cache_pio[MYSQL_PIO_MAX_T * MYSQL_PIO_MAX_LEVEL];
+	byte*		fetch_cache_pio[MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_LEVEL];
 	ulint		fetch_cache_pio_level;
 	ulint		fetch_cache_pio_tn;
 	ulint		fetch_cache_pio_max_tn;
 	ulint		fetch_cache_pio_max_level;
-	ibool		fetch_cache_pio_check[MYSQL_PIO_MAX_T * MYSQL_PIO_MAX_LEVEL]; // poll
+	ibool		fetch_cache_pio_check[MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_LEVEL]; // poll
 	ulint		fetch_cache_pio_check_sum[MYSQL_PIO_MAX_LEVEL]; // faa
+
+	btr_pcur_t	pio_pcur_queue[MYSQL_PIO_MAX_TN*MYSQL_PIO_MAX_LEVEL];
+	ulint		pio_pcur_queue_s[MYSQL_PIO_MAX_TN];
+	ulint		pio_pcur_queue_f[MYSQL_PIO_MAX_TN];
 
 	ibool		keep_other_fields_on_keyread; /*!< when using fetch
 					cache with HA_EXTRA_KEYREAD, don't

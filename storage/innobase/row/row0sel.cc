@@ -3963,7 +3963,12 @@ row_sel_prefetch_cache_init_pio(
 	prebuilt->fetch_cache_pio_tn = 0;
 	prebuilt->fetch_cache_pio_max_level = 10; // ??
 	prebuilt->fetch_cache_pio_max_tn = 8; // ??
-	
+
+	for (i=0;i < prebuilt->fetch_cache_pio_max_tn;++i)
+{
+	prebuilt->pio_pcur_queue_s[i] = 0;
+	prebuilt->pio_pcur_queue_f[i] = 0;
+}	
 
 	/* Reserve space for the magic number. */
 	sz = UT_ARR_SIZE(prebuilt->fetch_cache_pio) * (prebuilt->mysql_row_len + 8);

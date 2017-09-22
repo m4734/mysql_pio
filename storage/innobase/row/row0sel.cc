@@ -3868,7 +3868,7 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 
 	UNIV_MEM_ASSERT_W(buf, prebuilt->mysql_row_len);
 
-	cached_rec = prebuilt->fetch_cache[level * prebuilt->fetch_cache_pio_max_tn + tn];
+	cached_rec = prebuilt->fetch_cache[level * prebuilt->pio_max_tn + tn];
 
 	if (UNIV_UNLIKELY(prebuilt->keep_other_fields_on_keyread)) {
 		row_sel_copy_cached_fields_for_mysql(buf, cached_rec, prebuilt);
@@ -3899,7 +3899,7 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 		ut_memcpy(buf, cached_rec, prebuilt->mysql_prefix_len);
 	}
 
-	prebuilt->fetch_cache_pio_check[level * prebuilt->fetch_cache_pio_max_tn + tn] = false;
+	prebuilt->fetch_cache_pio_check[level * prebuilt->pio_max_tn + tn] = false;
 
 	//faa
 
@@ -3962,12 +3962,14 @@ row_sel_prefetch_cache_init_pio(
 	prebuilt->fetch_cache_pio_level = 0;
 	prebuilt->fetch_cache_pio_tn = 0;
 	prebuilt->fetch_cache_pio_max_level = 10; // ??
-	prebuilt->fetch_cache_pio_max_tn = 8; // ??
+	prebuilt->pio_max_tn = 8; // ??
+	prebuilt->pio_rec_queue_tn = 0;
+	prebuilt->pio_rec_queue_max_level = 10;
 
-	for (i=0;i < prebuilt->fetch_cache_pio_max_tn;++i)
+	for (i=0;i < prebuilt->pio_max_tn;++i)
 {
-	prebuilt->pio_pcur_queue_s[i] = 0;
-	prebuilt->pio_pcur_queue_f[i] = 0;
+	prebuilt->pio_rec_queue_s[i] = 0;
+	prebuilt->pio_rec_queue_f[i] = 0;
 }	
 
 	/* Reserve space for the magic number. */
@@ -3990,7 +3992,7 @@ row_sel_prefetch_cache_init_pio(
 		ptr += 4;
 	}
 
-	for (i=0;i<prebuilt->fetch_cache_pio_max_level*prebuilt->fetch_cache_pio_max_tn;++i)
+	for (i=0;i<prebuilt->fetch_cache_pio_max_level*prebuilt->pio_max_tn;++i)
 		prebuilt->fetch_cache_pio_check[i] = false;
 	for (i=0;i<prebuilt->fetch_cache_pio_max_level;++i)
 		prebuilt->fetch_cache_pio_check_sum[i] = 0;
@@ -4064,11 +4066,11 @@ row_sel_enqueue_cache_row_for_mysql_pio(
 //		byte*	dest = row_sel_fetch_last_buf(prebuilt);
 
 //		ut_memcpy(dest, mysql_rec, prebuilt->mysql_row_len);
-		ut_memcpy(prebuilt->fetch_cache_pio[level*prebuilt->fetch_cache_pio_max_tn+tn],mysql_rec,prebuilt->mysql_row_len);
+		ut_memcpy(prebuilt->fetch_cache_pio[level*prebuilt->pio_max_tn+tn],mysql_rec,prebuilt->mysql_row_len);
 	}
 
 	//poll
-	prebuilt->fetch_cache_pio_check[level*prebuilt->fetch_cache_pio_max_tn+tn] = true;
+	prebuilt->fetch_cache_pio_check[level*prebuilt->pio_max_tn+tn] = true;
 
 	//faa
 
@@ -4682,7 +4684,7 @@ row_search_mvcc_pio(
 
 		ulint level = prebuilt->fetch_cache_pio_level;
 		ulint tn = prebuilt->fetch_cache_pio_tn;
-		ulint max_tn = prebuilt->fetch_cache_pio_max_tn;
+		ulint max_tn = prebuilt->pio_max_tn;
 		ulint max_level = prebuilt->fetch_cache_pio_max_level;
 
 
@@ -5415,7 +5417,16 @@ if (pio_t > 0)
 //	close_pio(&pio_t,pcur_pio,&mtr0);
 	printf("ep\n");
 
+
+// cpu part
+			btr_pcur_open_at_index_side(
+			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
+			pcur, false, 0, &mtr);
+pio2();
+
+
 }
+else
 		btr_pcur_open_at_index_side(
 			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
 			pcur, false, 0, &mtr);

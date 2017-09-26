@@ -650,7 +650,7 @@ struct mysql_row_templ_t {
 
 //cgmin
 #define MYSQL_PIO_MAX_TN	8
-#define MYSQL_PIO_MAX_LEVEL	10
+#define MYSQL_PIO_MAX_RESULT_LEVEL	10
 #define MYSQL_PIO_MAX_REC_LEVEL 10
 
 
@@ -839,19 +839,23 @@ struct row_prebuilt_t {
 					start and at the end */
 
 //cgmin
-	byte*		fetch_cache_pio[MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_LEVEL];
-	ulint		fetch_cache_pio_level;
-	ulint		fetch_cache_pio_tn;
 	ulint		pio_max_tn;
-	ulint		fetch_cache_pio_max_level;
-	ibool		fetch_cache_pio_check[MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_LEVEL]; // poll
-	ulint		fetch_cache_pio_check_sum[MYSQL_PIO_MAX_LEVEL]; // faa
+	ibool		pio_on;
+
+	byte*		pio_result_queue[MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_RESULT_LEVEL];
+	ulint		pio_result_queue_level;
+	ulint		pio_result_queue_tn;
+	ulint		pio_result_queue_max_level;
+	ulint		pio_result_queue_s[MYSQL_PIO_MAX_TN];
+	ulint		pio_result_queue_f[MYSQL_PIO_MAX_TN];
+//	ibool		fetch_cache_pio_check[MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_RESULT_LEVEL]; // poll
+//	ulint		fetch_cache_pio_check_sum[MYSQL_PIO_MAX_LEVEL]; // faa	
 
 	//rec? pcur?
 	rec_t*		pio_rec_queue[MYSQL_PIO_MAX_TN*MYSQL_PIO_MAX_REC_LEVEL];
 	ulint		pio_rec_queue_s[MYSQL_PIO_MAX_TN];
 	ulint		pio_rec_queue_f[MYSQL_PIO_MAX_TN];
-	ulint		pio_rec_queue_tn;
+//	ulint		pio_rec_queue_tn;
 	ulint		pio_rec_queue_max_level;
 
 	ibool		keep_other_fields_on_keyread; /*!< when using fetch

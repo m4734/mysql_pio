@@ -181,9 +181,6 @@ void do_pio(int* pio_t,btr_pcur_t *pcur_pio,ulint *page_id_pio,mtr_t* mtr);
 UNIV_INLINE
 void close_pio(int* pio_t,btr_pcur_t *pcur_pio,mtr_t* mtr);
 
-UNIV_INLINE
-void pio2();
-
 /*****************************************************************//**
 Opens a persistent cursor at either end of an index. */
 UNIV_INLINE

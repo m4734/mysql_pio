@@ -3856,10 +3856,16 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 /*=================================*/
 	byte*		buf,		/*!< in/out: buffer where to copy the
 					row */
-	row_prebuilt_t*	prebuilt,
-	ulint		level,
-	ulint 		tn)	/*!< in: prebuilt struct */
+	row_prebuilt_t*	prebuilt)//,
+//	ulint		level,
+//	ulint 		tn)	/*!< in: prebuilt struct */
 {
+
+	ulint* level = &prebuilt->pio_result_queue_level;
+	ulint* tn = &prebuilt->pio_result_queue_tn;
+	ulint* max_tn = &prebuilt->pio_max_tn;
+	ulint* max_level = &prebuilt->pio_result_queue_max_level;
+
 	ulint			i;
 	const mysql_row_templ_t*templ;
 	const byte*		cached_rec;
@@ -3868,7 +3874,10 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 
 	UNIV_MEM_ASSERT_W(buf, prebuilt->mysql_row_len);
 
-	cached_rec = prebuilt->fetch_cache[level * prebuilt->pio_max_tn + tn];
+	while (prebuilt->pio_result_queue_f[*tn] != *level); //spin
+	if (prebuilt->pio_result_queue_s[*tn] != *level)
+		printf("queue error???\n");
+	cached_rec = prebuilt->pio_result_queue[*level * *max_tn + *tn];
 
 	if (UNIV_UNLIKELY(prebuilt->keep_other_fields_on_keyread)) {
 		row_sel_copy_cached_fields_for_mysql(buf, cached_rec, prebuilt);
@@ -3899,7 +3908,21 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 		ut_memcpy(buf, cached_rec, prebuilt->mysql_prefix_len);
 	}
 
-	prebuilt->fetch_cache_pio_check[level * prebuilt->pio_max_tn + tn] = false;
+//	prebuilt->fetch_cache_pio_check[level * prebuilt->pio_max_tn + tn] = false;
+
+	prebuilt->pio_result_queue_s[*tn]++;
+	if (prebuilt->pio_result_queue_s[*tn] >= *max_level)
+		prebuilt->pio_result_queue_s[*tn] = 0;
+
+
+	*tn++;
+	if (*tn >= *max_tn)
+	{
+		*tn = 0;
+		*level++;
+		if (*level >= *max_level)
+			*level = 0;
+	}
 
 	//faa
 
@@ -3959,11 +3982,11 @@ row_sel_prefetch_cache_init_pio(
 	ulint	sz;
 	byte*	ptr;
 
-	prebuilt->fetch_cache_pio_level = 0;
-	prebuilt->fetch_cache_pio_tn = 0;
-	prebuilt->fetch_cache_pio_max_level = 10; // ??
+	prebuilt->pio_result_queue_level = 0;
+	prebuilt->pio_result_queue_tn = 0;
+	prebuilt->pio_result_queue_max_level = 10; // ??
 	prebuilt->pio_max_tn = 8; // ??
-	prebuilt->pio_rec_queue_tn = 0;
+//	prebuilt->pio_rec_queue_tn = 0;
 	prebuilt->pio_rec_queue_max_level = 10;
 
 	for (i=0;i < prebuilt->pio_max_tn;++i)
@@ -3973,10 +3996,10 @@ row_sel_prefetch_cache_init_pio(
 }	
 
 	/* Reserve space for the magic number. */
-	sz = UT_ARR_SIZE(prebuilt->fetch_cache_pio) * (prebuilt->mysql_row_len + 8);
+	sz = UT_ARR_SIZE(prebuilt->pio_result_queue) * (prebuilt->mysql_row_len + 8);
 	ptr = static_cast<byte*>(ut_malloc_nokey(sz));
 
-	for (i = 0; i < UT_ARR_SIZE(prebuilt->fetch_cache_pio); i++) {
+	for (i = 0; i < UT_ARR_SIZE(prebuilt->pio_result_queue); i++) {
 
 		/* A user has reported memory corruption in these
 		buffers in Linux. Put magic numbers there to help
@@ -3985,18 +4008,18 @@ row_sel_prefetch_cache_init_pio(
 		mach_write_to_4(ptr, ROW_PREBUILT_FETCH_MAGIC_N);
 		ptr += 4;
 
-		prebuilt->fetch_cache_pio[i] = ptr;
+		prebuilt->pio_result_queue[i] = ptr;
 		ptr += prebuilt->mysql_row_len;
 
 		mach_write_to_4(ptr, ROW_PREBUILT_FETCH_MAGIC_N);
 		ptr += 4;
 	}
-
+/*
 	for (i=0;i<prebuilt->fetch_cache_pio_max_level*prebuilt->pio_max_tn;++i)
 		prebuilt->fetch_cache_pio_check[i] = false;
 	for (i=0;i<prebuilt->fetch_cache_pio_max_level;++i)
 		prebuilt->fetch_cache_pio_check_sum[i] = 0;
-
+*/
 }
 
 /********************************************************************//**
@@ -4049,24 +4072,25 @@ row_sel_enqueue_cache_row_for_mysql(
 }
 
 //cgmin
+/*
 UNIV_INLINE
 void
 row_sel_enqueue_cache_row_for_mysql_pio(
-/*================================*/
-	byte*		mysql_rec,	/*!< in/out: MySQL record */
+================================
+	byte*		mysql_rec,	!< in/out: MySQL record 
 	row_prebuilt_t*	prebuilt,
 	ulint tn,
 	ulint level
-)	/*!< in/out: prebuilt struct */
+)	!< in/out: prebuilt struct 
 {
-	/* For non ICP code path the row should already exist in the
-	next fetch cache slot. */
+	 For non ICP code path the row should already exist in the
+	next fetch cache slot. 
 
 	if (prebuilt->idx_cond != NULL) {
 //		byte*	dest = row_sel_fetch_last_buf(prebuilt);
 
 //		ut_memcpy(dest, mysql_rec, prebuilt->mysql_row_len);
-		ut_memcpy(prebuilt->fetch_cache_pio[level*prebuilt->pio_max_tn+tn],mysql_rec,prebuilt->mysql_row_len);
+		ut_memcpy(prebuilt->pio_result_queue[level*prebuilt->pio_max_tn+tn],mysql_rec,prebuilt->mysql_row_len);
 	}
 
 	//poll
@@ -4078,7 +4102,7 @@ row_sel_enqueue_cache_row_for_mysql_pio(
 //cgmin
 //printf("enqueue\n");
 }
-
+*/
 /*********************************************************************//**
 Tries to do a shortcut to fetch a clustered index record with a unique key,
 using the hash index if possible (not always). We assume that the search
@@ -4609,6 +4633,193 @@ row_sel_fill_vrow(
 	}
 }
 
+
+
+
+
+//cgmin
+
+struct pcur_fetch_pio_data_t
+{
+	btr_pcur_t* pcur;
+	row_prebuilt_t* prebuilt;
+/*
+	rec_t** pio_rec_queue;
+	ulint*	pio_rec_queue_s;
+	ulint*	pio_rec_queue_f;
+	ulint*	pio_rec_queue_tn;
+	ulint*	pio_rec_queue_max_level;
+	ulint*	pio_max_tn;
+*/
+};
+
+void *pcur_fetch_pio(void *data)//pcur_fetch_pio_data)
+{
+	btr_pcur_t* cursor = ((pcur_fetch_pio_data_t*)data)->pcur;
+	row_prebuilt_t* prebuilt = ((pcur_fetch_pio_data_t*)data)->prebuilt;
+	rec_t** pio_rec_queue = prebuilt->pio_rec_queue;
+	ulint* pio_rec_queue_s = prebuilt->pio_rec_queue_s;
+	ulint* pio_rec_queue_f = prebuilt->pio_rec_queue_f;
+//	ulint* pio_rec_queue_tn = &prebuilt->pio_rec_queue_tn;
+	ulint pio_rec_queue_tn = 0;
+	ulint* pio_rec_queue_max_level = &prebuilt->pio_rec_queue_max_level;
+	ulint* pio_max_tn = &prebuilt->pio_max_tn;
+
+	mtr_t mtr;
+	rec_t* rec;
+
+	ut_ad(cursor->pos_state == BTR_PCUR_IS_POSITIONED);
+	ut_ad(cursor->latch_mode != BTR_NO_LATCHES);
+
+	cursor->old_stored = false;
+
+	dict_index_t* index = btr_pcur_get_btr_cur(cursor)->index;
+	const page_size_t&	page_size = dict_table_page_size(index->table);
+
+	mtr.start();
+	buf_page_get(btr_pcur_get_block(cursor)->page.id,page_size,RW_S_LATCH,&mtr);
+
+	// we need lock lock lock lock lock record lock maybe
+
+
+	while (btr_pcur_is_after_last_in_tree(cursor,&mtr) == false)
+// && (ulint)btr_page_get_next(btr_pcur_get_page(cursor),&mtr) != (ulint)page_id_pio)
+//(ulint)btr_pcur_get_block(cursor)->page.id.page_no() != (ulint)page_id_pio)
+	{
+
+//		btr_pcur_move_to_next_page(cursor, &mtr);
+
+		rec = btr_pcur_get_rec(cursor);
+		if (!page_rec_is_supremum(rec) && !page_rec_is_infimum(rec))
+		{
+			while (pio_rec_queue_f[pio_rec_queue_tn]+1 == pio_rec_queue_s[pio_rec_queue_tn] || (pio_rec_queue_f[pio_rec_queue_tn]+1 == *pio_rec_queue_max_level && pio_rec_queue_s[pio_rec_queue_tn] == 0))
+{
+	//full!!!
+	sleep(1);
+}
+
+			pio_rec_queue[pio_rec_queue_f[pio_rec_queue_tn]*(*pio_max_tn)+pio_rec_queue_tn] = rec;
+			pio_rec_queue_f[pio_rec_queue_tn]++;
+			if (pio_rec_queue_f[pio_rec_queue_tn] >= *pio_rec_queue_max_level)
+				pio_rec_queue_f[pio_rec_queue_tn] = 0;
+
+			pio_rec_queue_tn++;
+			if (pio_rec_queue_tn >= *pio_max_tn)
+				pio_rec_queue_tn = 0;
+		}
+
+		btr_pcur_move_to_next(cursor,&mtr);
+
+	}
+
+	btr_leaf_page_release(btr_pcur_get_block(cursor), BTR_SEARCH_LEAF, &mtr);///?????????????????????cursor->latch_mode
+//	btr_leaf_page_release(btr_pcur_get_block(&pcur_pio[i]), pcur_pio[i].latch_mode, mtr);
+
+
+//mtr->commit();
+//printf("ptf f   %lu %lu\n",(ulint)btr_pcur_get_block(cursor)->page.id.page_no(),(ulint)page_id_pio);
+//printf("bfc3 %lu %lu\n",(ulint)tb->page.buf_fix_count,(ulint)btr_pcur_get_block(cursor)->page.buf_fix_count);
+btr_pcur_close(cursor);//???
+mtr.commit();
+
+free(data);
+	pthread_exit(NULL);
+
+}
+
+struct rec_convert_pio_data_t
+{
+	ulint pio_tn;
+	row_prebuilt_t* prebuilt;
+/*
+	rec_t** pio_rec_queue;
+	ulint*	pio_rec_queue_s;
+	ulint*	pio_rec_queue_f;
+	ulint*	pio_rec_queue_tn;
+	ulint*	pio_rec_queue_max_level;
+	ulint*	pio_max_tn;
+
+	byte**		fetch_cache_pio;//[MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_LEVEL];
+	ulint*		fetch_cache_pio_level;
+	ulint*		fetch_cache_pio_tn;
+	ulint*		pio_max_tn;
+	ulint*		fetch_cache_pio_max_level;
+	ibool*		fetch_cache_pio_check;//[MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_LEVEL]; // poll
+	ulint*		fetch_cache_pio_check_sum;//[MYSQL_PIO_MAX_LEVEL]; // faa
+*/
+};
+void rec_convert_pio(void *data)
+{
+	//pio_rec_queue->convert->fetch_cache_pio
+	ulint pio_tn = ((rec_convert_pio_data_t*)data)->pio_tn;
+	row_prebuilt_t* prebuilt = ((pcur_fetch_pio_data_t*)data)->prebuilt;
+
+	ibool* pio_on = &prebuilt->pio_on;
+
+	rec_t** pio_rec_queue = prebuilt->pio_rec_queue;
+	ulint* pio_rec_queue_s = prebuilt->pio_rec_queue_s;
+	ulint* pio_rec_queue_f = prebuilt->pio_rec_queue_f;
+//	ulint* pio_rec_queue_tn = &prebuilt->pio_rec_queue_tn;
+	ulint* pio_rec_queue_max_level = &prebuilt->pio_rec_queue_max_level;
+	ulint* pio_max_tn = &prebuilt->pio_max_tn;
+
+	byte**	pio_result_queue = prebuilt->pio_result_queue;
+	ulint*	pio_result_queue_s = prebuilt->pio_result_queue_s;
+	ulint*	pio_result_queue_f = prebuilt->pio_result_queue_f;
+	ulint*	pio_result_queue_max_level = &prebuilt->pio_result_queue_max_level;
+	
+
+//	dict_index_t* index = btr_pcur_get_btr_cur(cursor)->index;
+	dict_index_t* index = prebuilt->index;
+	rec_t* innodb_rec;
+	rec_t* mysql_rec;
+	ulint	offsets_[REC_OFFS_NORMAL_SIZE];
+	ulint*	offsets = offsets_;
+
+
+	mem_heap_t*	heap = NULL;
+
+	while(*pio_on)
+{
+
+	while(*pio_on && pio_rec_queue_s[pio_tn] == pio_rec_queue_f[pio_tn]);	//spin
+	if (*pio_on == FALSE &&  pio_rec_queue_s[pio_tn] == pio_rec_queue_f[pio_tn])
+		break;
+	while((pio_result_queue_f[pio_tn]+1 == *pio_result_queue_max_level && pio_result_queue_s[pio_tn] == 0) || pio_result_queue_f[pio_tn]+1 == pio_result_queue_s[pio_tn]);
+
+	innodb_rec = pio_rec_queue[*pio_max_tn*pio_rec_queue_s[pio_tn]+pio_tn];
+	mysql_rec = pio_result_queue[*pio_max_tn*pio_result_queue_s[pio_tn]+pio_tn];
+
+	if (heap == NULL) // really??	
+		offsets = rec_get_offsets(innodb_rec,index,offsets,ULINT_UNDEFINED,&heap);
+	row_sel_store_mysql_rec(mysql_rec,prebuilt,innodb_rec,NULL,FALSE,index,offsets);
+
+
+	pio_rec_queue_s[pio_tn]++;
+	if (pio_rec_queue_s[pio_tn] >= *pio_rec_queue_max_level)
+		pio_rec_queue_s = 0;
+
+	pio_result_queue_f[pio_tn]++;
+	if (pio_result_queue_f[pio_tn] >= *pio_result_queue_max_level)
+		pio_result_queue_f[pio_tn] = 0;
+}
+
+	if (heap != NULL)
+		mem_heap_free(heap);
+}
+
+void pio2(row_prebuilt_t* prebuilt)
+{
+	pthread_t pcur_fetch_pio_thread;
+	pcur_fetch_pio_data_t *pcur_fetch_pio_data;
+
+}
+
+
+
+
+
+
 /** Searches for rows in the database using cursor.
 Function is mainly used for tables that are shared accorss connection and
 so it employs technique that can help re-construct the rows that
@@ -4682,10 +4893,10 @@ row_search_mvcc_pio(
 //	byte*		next_buf			= 0;
 //	bool		spatial_search			= false;
 
-		ulint level = prebuilt->fetch_cache_pio_level;
-		ulint tn = prebuilt->fetch_cache_pio_tn;
-		ulint max_tn = prebuilt->pio_max_tn;
-		ulint max_level = prebuilt->fetch_cache_pio_max_level;
+//		ulint level = prebuilt->pio_result_queue_level;
+//		ulint tn = prebuilt->pio_result_queue_tn;
+//		ulint max_tn = prebuilt->pio_max_tn;
+//		ulint max_level = prebuilt->fetch_cache_pio_max_level;
 
 
 
@@ -4784,11 +4995,11 @@ row_search_mvcc_pio(
 
 		//removed
 
-		while (prebuilt->fetch_cache_pio_check[level*max_tn+tn] == false)
-			printf("aaa!!!\n");
+//		while (prebuilt->fetch_cache_pio_check[level*max_tn+tn] == false)
+//			printf("aaa!!!\n");
 
-		row_sel_dequeue_cached_row_for_mysql_pio(buf, prebuilt,level,tn);
-
+		row_sel_dequeue_cached_row_for_mysql_pio(buf, prebuilt);
+/*
 		++tn;
 		if (max_tn <= tn)
 		{
@@ -4797,6 +5008,7 @@ row_search_mvcc_pio(
 			if (max_level <= level)
 				level = 0;
 		}
+*/
 		err = DB_SUCCESS;
 		goto func_exit;
 
@@ -5422,8 +5634,9 @@ if (pio_t > 0)
 			btr_pcur_open_at_index_side(
 			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
 			pcur, false, 0, &mtr);
-pio2();
+pio2(prebuilt);
 
+//return ???
 
 }
 else
@@ -6482,6 +6695,7 @@ func_exit:
 
 	DBUG_RETURN(err);
 }
+
 
 /********************************************************************//**
 Count rows in a R-Tree leaf level.

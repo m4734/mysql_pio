@@ -1060,17 +1060,17 @@ row_prebuilt_free(
 	}
 
 //cgmin
-		if (prebuilt->fetch_cache_pio[0] != NULL) {
-		byte*	base = prebuilt->fetch_cache_pio[0] - 4;
+		if (prebuilt->pio_result_queue[0] != NULL) {
+		byte*	base = prebuilt->pio_result_queue[0] - 4;
 		byte*	ptr = base;
 
-		for (ulint i = 0; i < MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_LEVEL/*MYSQL_FETCH_CACHE_SIZE*/; i++) {
+		for (ulint i = 0; i < MYSQL_PIO_MAX_TN * MYSQL_PIO_MAX_RESULT_LEVEL/*MYSQL_FETCH_CACHE_SIZE*/; i++) {
 			ulint	magic1 = mach_read_from_4(ptr);
 			ut_a(magic1 == ROW_PREBUILT_FETCH_MAGIC_N);
 			ptr += 4;
 
 			byte*	row = ptr;
-			ut_a(row == prebuilt->fetch_cache_pio[i]);
+			ut_a(row == prebuilt->pio_result_queue[i]);
 			ptr += prebuilt->mysql_row_len;
 
 			ulint	magic2 = mach_read_from_4(ptr);

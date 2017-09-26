@@ -249,6 +249,10 @@ row_search_mvcc(
 , int pio_t)
 	MY_ATTRIBUTE((warn_unused_result));
 
+//cgmin
+//void pio2();
+
+
 /********************************************************************//**
 Count rows in a R-Tree leaf level.
 @return DB_SUCCESS if successful */

@@ -4668,6 +4668,8 @@ void *pcur_fetch_pio(void *data)//pcur_fetch_pio_data)
 	mtr_t mtr;
 	rec_t* rec;
 
+	prebuilt->pio_on = true;
+
 	ut_ad(cursor->pos_state == BTR_PCUR_IS_POSITIONED);
 	ut_ad(cursor->latch_mode != BTR_NO_LATCHES);
 
@@ -4722,6 +4724,8 @@ void *pcur_fetch_pio(void *data)//pcur_fetch_pio_data)
 btr_pcur_close(cursor);//???
 mtr.commit();
 
+prebuilt->pio_on=false;
+
 free(data);
 	pthread_exit(NULL);
 
@@ -4748,7 +4752,7 @@ struct rec_convert_pio_data_t
 	ulint*		fetch_cache_pio_check_sum;//[MYSQL_PIO_MAX_LEVEL]; // faa
 */
 };
-void rec_convert_pio(void *data)
+void *rec_convert_pio(void *data)
 {
 	//pio_rec_queue->convert->fetch_cache_pio
 	ulint pio_tn = ((rec_convert_pio_data_t*)data)->pio_tn;
@@ -4806,12 +4810,40 @@ void rec_convert_pio(void *data)
 
 	if (heap != NULL)
 		mem_heap_free(heap);
+free(data);
+pthread_exit(NULL);
 }
 
-void pio2(row_prebuilt_t* prebuilt)
+void pio2(row_prebuilt_t* prebuilt,btr_pcur_t* pcur)
 {
 	pthread_t pcur_fetch_pio_thread;
 	pcur_fetch_pio_data_t *pcur_fetch_pio_data;
+
+	// use define for tn
+
+	pthread_t rec_convert_pio_thread[16];
+	rec_convert_pio_data_t* rec_convert_pio_data[16];
+
+	int i;
+
+	pcur_fetch_pio_data = (pcur_fetch_pio_data_t*)malloc(sizeof(pcur_fetch_pio_data_t));
+	pcur_fetch_pio_data->prebuilt = prebuilt;
+	pcur_fetch_pio_data->pcur = pcur;
+
+	for (i=0;i<8;++i)
+	{
+
+		rec_convert_pio_data[i] = (rec_convert_pio_data_t*)malloc(sizeof(rec_convert_pio_data_t));
+		rec_convert_pio_data[i]->prebuilt = prebuilt;
+		rec_convert_pio_data[i]->pio_tn = i;
+	}
+
+	pthread_create(&pcur_fetch_pio_thread,NULL,&pcur_fetch_pio,(void*)(pcur_fetch_pio_data));
+
+	for (i=0;i<8;++i)
+		pthread_create(&rec_convert_pio_thread[i],NULL,&rec_convert_pio,(void*)(rec_convert_pio_data[i]));
+
+
 
 }
 
@@ -5634,7 +5666,7 @@ if (pio_t > 0)
 			btr_pcur_open_at_index_side(
 			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
 			pcur, false, 0, &mtr);
-pio2(prebuilt);
+pio2(prebuilt,pcur);
 
 //return ???
 

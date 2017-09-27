@@ -3860,7 +3860,7 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 //	ulint		level,
 //	ulint 		tn)	/*!< in: prebuilt struct */
 {
-printf("dequeue s\n");
+//printf("dequeue s\n");
 	ulint* level = &prebuilt->pio_result_queue_level;
 	ulint* tn = &prebuilt->pio_result_queue_tn;
 	ulint* max_tn = &prebuilt->pio_max_tn;
@@ -3875,7 +3875,23 @@ printf("dequeue s\n");
 	UNIV_MEM_ASSERT_W(buf, prebuilt->mysql_row_len);
 
 	while (prebuilt->pio_result_queue_f[*tn] == *level) //spin
-		printf("dequeue spin tn %lu level %lu\n",*tn,*level);
+{
+//		printf("dequeue spin tn %lu level %lu\n",*tn,*level);
+		usleep(1);
+	if (prebuilt->pio_on == false)
+	{
+		for (i=0;i<prebuilt->pio_max_tn;++i)
+		{
+			if (prebuilt->pio_on2[i] == true)
+				break;
+		}
+		if (i>=prebuilt->pio_max_tn)
+		{
+			prebuilt->pio_on3 = false;
+			return;
+		}
+	}
+}
 	if (prebuilt->pio_result_queue_s[*tn] != *level)
 		printf("queue error??? qs %lu tn %lu level %lu\n",prebuilt->pio_result_queue_s[*tn],*tn,*level);
 	cached_rec = prebuilt->pio_result_queue[*level * *max_tn + *tn];
@@ -3936,7 +3952,7 @@ printf("dequeue s\n");
 	}
 */
 //cgmin
-printf("dequeue f\n");
+//printf("dequeue f\n");
 }
 
 /********************************************************************//**
@@ -4645,7 +4661,7 @@ row_sel_fill_vrow(
 
 struct pcur_fetch_pio_data_t
 {
-	btr_pcur_t* pcur;
+//	btr_pcur_t pcur;
 	row_prebuilt_t* prebuilt;
 /*
 	rec_t** pio_rec_queue;
@@ -4660,8 +4676,13 @@ struct pcur_fetch_pio_data_t
 void *pcur_fetch_pio(void *data)//pcur_fetch_pio_data)
 {
 printf("pcur fetch pio s\n");
-	btr_pcur_t* cursor = ((pcur_fetch_pio_data_t*)data)->pcur;
+//	btr_pcur_t* cursor = ((pcur_fetch_pio_data_t*)data)->pcur;
+
 	row_prebuilt_t* prebuilt = ((pcur_fetch_pio_data_t*)data)->prebuilt;
+
+	btr_pcur_t pcur = *prebuilt->pcur;
+	btr_pcur_t* cursor = &pcur;
+
 	rec_t** pio_rec_queue = prebuilt->pio_rec_queue;
 	ulint* pio_rec_queue_s = prebuilt->pio_rec_queue_s;
 	ulint* pio_rec_queue_f = prebuilt->pio_rec_queue_f;
@@ -4680,15 +4701,19 @@ printf("pcur fetch pio s\n");
 
 	cursor->old_stored = false;
 
-	dict_index_t* index = btr_pcur_get_btr_cur(cursor)->index;
+//	dict_index_t* index = btr_pcur_get_btr_cur(cursor)->index;
+	dict_index_t* index = prebuilt->index;
 	const page_size_t&	page_size = dict_table_page_size(index->table);
+mtr.start();
+		btr_pcur_open_at_index_side(
+			/*mode == PAGE_CUR_G*/true, index, BTR_SEARCH_LEAF,
+			cursor, false, 0, &mtr);
 
-	mtr.start();
-	buf_page_get(btr_pcur_get_block(cursor)->page.id,page_size,RW_S_LATCH,&mtr);
+	buf_page_get(btr_pcur_get_block(cursor)->page.id,page_size,RW_S_LATCH,&mtr);//???
 
 	// we need lock lock lock lock lock record lock maybe
 
-int i = 0;
+//int i = 0;
 
 	while (btr_pcur_is_after_last_in_tree(cursor,&mtr) == false)
 // && (ulint)btr_page_get_next(btr_pcur_get_page(cursor),&mtr) != (ulint)page_id_pio)
@@ -4707,6 +4732,7 @@ int i = 0;
 //	printf("fetch tn %lu s %lu f %lu\n",pio_rec_queue_tn,pio_rec_queue_s[pio_rec_queue_tn],pio_rec_queue_f[pio_rec_queue_tn]);
 //	prebuilt->pio_cnt_rec_queue_f[pio_rec_queue_tn]++;
 //sleep(1);
+usleep(1);
 }
 
 /*
@@ -4723,7 +4749,9 @@ break;
 
 
 
-//			pio_rec_queue[pio_rec_queue_f[pio_rec_queue_tn]*(*pio_max_tn)+pio_rec_queue_tn] = rec;
+			pio_rec_queue[pio_rec_queue_f[pio_rec_queue_tn]*(*pio_max_tn)+pio_rec_queue_tn] = rec;
+//i++;
+//printf("n %d t %lu\n",i,pio_rec_queue_tn);
 
 			pio_rec_queue_f[pio_rec_queue_tn]++;
 			if (pio_rec_queue_f[pio_rec_queue_tn] >= *pio_rec_queue_max_level)
@@ -4736,8 +4764,6 @@ break;
 				pio_rec_queue_tn = 0;
 
 		}
-i++;
-printf("p %d t %lu\n",i,pio_rec_queue_tn);
 		btr_pcur_move_to_next(cursor,&mtr);
 
 
@@ -4754,7 +4780,7 @@ btr_pcur_close(cursor);//???
 mtr.commit();
 
 prebuilt->pio_on=false;
-
+//free(cursor);
 free(data);
 
 printf("pcur fetch pio f\n");
@@ -4825,6 +4851,7 @@ printf("convert pio %lu s\n",pio_tn);
 //		printf("convert rec tn %lu s %lu f %lu\n",pio_tn,pio_rec_queue_s[pio_tn],pio_rec_queue_f[pio_tn]);
 //		pthread_cond_wait(&prebuilt->pio_rec_cond_f[pio_tn],NULL);
 //	prebuilt->pio_cnt_rec_queue_f[pio_tn]++;
+usleep(1);
 }
 /*
 while(true)
@@ -4836,13 +4863,16 @@ while(true)
 //	printf("xxxxx %lu ",pio_tn);
 //	printf("%lu %lu\n",pio_rec_queue_s[pio_tn],pio_rec_queue_f[pio_tn]);
 }
+*/
 	if (*pio_on == false && pio_rec_queue_s[pio_tn] == pio_rec_queue_f[pio_tn])
 		break;
-*/
+
 //printf("000\n");
 	while((pio_result_queue_f[pio_tn]+1 == *pio_result_queue_max_level && pio_result_queue_s[pio_tn] == 0) || pio_result_queue_f[pio_tn]+1 == pio_result_queue_s[pio_tn])
-		printf("convert result tn %lu s %lu f %lu\n",pio_tn,pio_result_queue_s[pio_tn],pio_result_queue_f[pio_tn]);
-
+{
+//		printf("convert result tn %lu s %lu f %lu\n",pio_tn,pio_result_queue_s[pio_tn],pio_result_queue_f[pio_tn]);
+usleep(1);
+}
 /*
 while(true)
 {
@@ -4851,15 +4881,15 @@ while(true)
 //		printf("convert result tn %lu s %lu f %lu\n",pio_tn,pio_result_queue_s[pio_tn],pio_result_queue_f[pio_tn]);
 }
 */
-printf("ct %lu\n",pio_tn);
-/*
+//printf("ct %lu\n",pio_tn);
+
 	innodb_rec = pio_rec_queue[*pio_max_tn*pio_rec_queue_s[pio_tn]+pio_tn];
 	mysql_rec = pio_result_queue[*pio_max_tn*pio_result_queue_s[pio_tn]+pio_tn];
 
 	if (heap == NULL) // really??	
 		offsets = rec_get_offsets(innodb_rec,index,offsets,ULINT_UNDEFINED,&heap);
 	row_sel_store_mysql_rec(mysql_rec,prebuilt,innodb_rec,NULL,FALSE,index,offsets);
-*/
+
 
 	pio_rec_queue_s[pio_tn]++;
 	if (pio_rec_queue_s[pio_tn] >= *pio_rec_queue_max_level)
@@ -4867,21 +4897,22 @@ printf("ct %lu\n",pio_tn);
 
 //	pthread_cond_signal(&prebuilt->pio_rec_cond_s[pio_tn]);
 
-/*
+
 	pio_result_queue_f[pio_tn]++;
 	if (pio_result_queue_f[pio_tn] >= *pio_result_queue_max_level)
 		pio_result_queue_f[pio_tn] = 0;
-*/
+
 }
 
 	if (heap != NULL)
 		mem_heap_free(heap);
 free(data);
-printf("convert pio f\n");
+printf("convert pio %lu f\n",pio_tn);
+	prebuilt->pio_on2[pio_tn] = false;
 pthread_exit(NULL);
 }
 
-void pio2(row_prebuilt_t* prebuilt,btr_pcur_t* pcur)
+void pio2(row_prebuilt_t* prebuilt)
 {
 	pthread_t pcur_fetch_pio_thread;
 	pcur_fetch_pio_data_t *pcur_fetch_pio_data;
@@ -4893,11 +4924,17 @@ void pio2(row_prebuilt_t* prebuilt,btr_pcur_t* pcur)
 
 	ulint i;
 
+//	btr_pcur_t* pcur = (btr_pcur_t*)malloc(sizeof(btr_pcur_t*));
+//	*pcur = *(prebuilt->pcur);
+
+//	btr_pcur_init(&pcur);
+//	btr_pcur_copy_stored_position(&pcur,prebuilt->pcur);
+
 	row_sel_prefetch_cache_init_pio(prebuilt);
 
 	pcur_fetch_pio_data = (pcur_fetch_pio_data_t*)malloc(sizeof(pcur_fetch_pio_data_t));
 	pcur_fetch_pio_data->prebuilt = prebuilt;
-	pcur_fetch_pio_data->pcur = pcur;
+//	pcur_fetch_pio_data->pcur = pcur;
 
 	for (i=0;i<8;i++)
 	{
@@ -4914,17 +4951,21 @@ void pio2(row_prebuilt_t* prebuilt,btr_pcur_t* pcur)
 		pthread_cond_init(&prebuilt->pio_result_cond_s[i],NULL);
 		pthread_cond_init(&prebuilt->pio_result_cond_f[i],NULL);
 */
+/*
 		prebuilt->pio_cnt_rec_queue_s[i] = 0;
 		prebuilt->pio_cnt_rec_queue_f[i] = 0;
 		prebuilt->pio_cnt_result_queue_s[i] = 0;
 		prebuilt->pio_cnt_result_queue_f[i] = 0;
-
+*/
 		rec_convert_pio_data[i] = (rec_convert_pio_data_t*)malloc(sizeof(rec_convert_pio_data_t));
 		rec_convert_pio_data[i]->prebuilt = prebuilt;
 		rec_convert_pio_data[i]->pio_tn = i;
+
+		prebuilt->pio_on2[i] = true;
 	}
 
 	prebuilt->pio_on = true;
+	prebuilt->pio_on3 = true;
 
 	pthread_create(&pcur_fetch_pio_thread,NULL,&pcur_fetch_pio,(void*)(pcur_fetch_pio_data));
 
@@ -4932,11 +4973,13 @@ void pio2(row_prebuilt_t* prebuilt,btr_pcur_t* pcur)
 		pthread_create(&rec_convert_pio_thread[i],NULL,&rec_convert_pio,(void*)(rec_convert_pio_data[i]));
 
 	//test
-	for (i=0;i<8;++i)
-		pthread_join(rec_convert_pio_thread[i],NULL);
+//	for (i=0;i<8;++i)
+//		pthread_join(rec_convert_pio_thread[i],NULL);
 
 //	pthread_join(pcur_fetch_pio_thread,NULL);
-	printf("te\n");
+//	printf("te\n");
+
+//while(true);
 
 }
 
@@ -5122,8 +5165,9 @@ row_search_mvcc_pio(
 
 //		while (prebuilt->fetch_cache_pio_check[level*max_tn+tn] == false)
 //			printf("aaa!!!\n");
-
+//		printf("dequeue s\n");
 		row_sel_dequeue_cached_row_for_mysql_pio(buf, prebuilt);
+//		printf("dequeue f\n");
 /*
 		++tn;
 		if (max_tn <= tn)
@@ -5134,7 +5178,13 @@ row_search_mvcc_pio(
 				level = 0;
 		}
 */
-		err = DB_SUCCESS;
+		if (prebuilt->pio_on3 == false)
+{
+			err = DB_END_OF_INDEX;
+			printf("the end\n");
+}
+		else
+			err = DB_SUCCESS;
 		goto func_exit;
 
 
@@ -5739,7 +5789,7 @@ if (pio_t > 0)
 	printf("cgmin\n");
 //	btr_cur_open_at_rnd_pos(index,BTR_SEARCH_LEAF,btr_pcur_get_btr_cur(pcur),&mtr);	
 //printf("pio test\n");
-/*
+
 	btr_pcur_t pcur_pio[128];
 	ulint page_id_pio[128];
 	mtr_t mtr_pio[128];
@@ -5753,15 +5803,15 @@ if (pio_t > 0)
 //	printf("cp\n");
 //	close_pio(&pio_t,pcur_pio,&mtr0);
 	printf("ep\n");
-*/
+
 
 // cpu part
 printf("pcur o\n");
-			btr_pcur_open_at_index_side(
-			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
-			pcur, false, 0, &mtr);
+//			btr_pcur_open_at_index_side(
+//			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
+//			pcur, false, 0, &mtr);
 printf("pio2 s\n");
-pio2(prebuilt,pcur);
+pio2(prebuilt);
 printf("pio2 f\n");
 
 return row_search_mvcc_pio(buf,mode,prebuilt,match_mode,ROW_SEL_NEXT,pio_t);

@@ -841,6 +841,8 @@ struct row_prebuilt_t {
 //cgmin
 	ulint		pio_max_tn;
 	ibool		pio_on;
+	ibool		pio_on2[MYSQL_PIO_MAX_TN+1];
+	ibool		pio_on3;
 	ibool		pio_init;
 
 	byte*		pio_result_queue[(MYSQL_PIO_MAX_TN+1) * (MYSQL_PIO_MAX_RESULT_LEVEL+1)];

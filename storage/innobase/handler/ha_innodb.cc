@@ -8936,7 +8936,7 @@ ha_innobase::general_fetch(
 	dberr_t	ret;
 
 	if (!intrinsic) {
-		if (pio_t > 0)
+		if (m_prebuilt->pio_on3)
 			ret = row_search_mvcc_pio(
 			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,
 			direction,pio_t);

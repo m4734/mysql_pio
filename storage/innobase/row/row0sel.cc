@@ -3860,7 +3860,7 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 //	ulint		level,
 //	ulint 		tn)	/*!< in: prebuilt struct */
 {
-
+printf("dequeue s\n");
 	ulint* level = &prebuilt->pio_result_queue_level;
 	ulint* tn = &prebuilt->pio_result_queue_tn;
 	ulint* max_tn = &prebuilt->pio_max_tn;
@@ -3874,9 +3874,10 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 
 	UNIV_MEM_ASSERT_W(buf, prebuilt->mysql_row_len);
 
-	while (prebuilt->pio_result_queue_f[*tn] != *level); //spin
+	while (prebuilt->pio_result_queue_f[*tn] == *level) //spin
+		printf("dequeue spin tn %lu level %lu\n",*tn,*level);
 	if (prebuilt->pio_result_queue_s[*tn] != *level)
-		printf("queue error???\n");
+		printf("queue error??? qs %lu tn %lu level %lu\n",prebuilt->pio_result_queue_s[*tn],*tn,*level);
 	cached_rec = prebuilt->pio_result_queue[*level * *max_tn + *tn];
 
 	if (UNIV_UNLIKELY(prebuilt->keep_other_fields_on_keyread)) {
@@ -3915,11 +3916,11 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 		prebuilt->pio_result_queue_s[*tn] = 0;
 
 
-	*tn++;
+	(*tn)++;
 	if (*tn >= *max_tn)
 	{
 		*tn = 0;
-		*level++;
+		(*level)++;
 		if (*level >= *max_level)
 			*level = 0;
 	}
@@ -3935,7 +3936,7 @@ row_sel_dequeue_cached_row_for_mysql_pio(
 	}
 */
 //cgmin
-//printf("dequeue\n");
+printf("dequeue f\n");
 }
 
 /********************************************************************//**
@@ -3994,7 +3995,8 @@ row_sel_prefetch_cache_init_pio(
 	prebuilt->pio_rec_queue_s[i] = 0;
 	prebuilt->pio_rec_queue_f[i] = 0;
 }	
-
+if (prebuilt->pio_init == false)
+{
 	/* Reserve space for the magic number. */
 	sz = UT_ARR_SIZE(prebuilt->pio_result_queue) * (prebuilt->mysql_row_len + 8);
 	ptr = static_cast<byte*>(ut_malloc_nokey(sz));
@@ -4020,6 +4022,8 @@ row_sel_prefetch_cache_init_pio(
 	for (i=0;i<prebuilt->fetch_cache_pio_max_level;++i)
 		prebuilt->fetch_cache_pio_check_sum[i] = 0;
 */
+}
+	prebuilt->pio_init = true;
 }
 
 /********************************************************************//**
@@ -4655,6 +4659,7 @@ struct pcur_fetch_pio_data_t
 
 void *pcur_fetch_pio(void *data)//pcur_fetch_pio_data)
 {
+printf("pcur fetch pio s\n");
 	btr_pcur_t* cursor = ((pcur_fetch_pio_data_t*)data)->pcur;
 	row_prebuilt_t* prebuilt = ((pcur_fetch_pio_data_t*)data)->prebuilt;
 	rec_t** pio_rec_queue = prebuilt->pio_rec_queue;
@@ -4668,7 +4673,7 @@ void *pcur_fetch_pio(void *data)//pcur_fetch_pio_data)
 	mtr_t mtr;
 	rec_t* rec;
 
-	prebuilt->pio_on = true;
+//	prebuilt->pio_on = true;  no way!!!
 
 	ut_ad(cursor->pos_state == BTR_PCUR_IS_POSITIONED);
 	ut_ad(cursor->latch_mode != BTR_NO_LATCHES);
@@ -4683,6 +4688,7 @@ void *pcur_fetch_pio(void *data)//pcur_fetch_pio_data)
 
 	// we need lock lock lock lock lock record lock maybe
 
+int i = 0;
 
 	while (btr_pcur_is_after_last_in_tree(cursor,&mtr) == false)
 // && (ulint)btr_page_get_next(btr_pcur_get_page(cursor),&mtr) != (ulint)page_id_pio)
@@ -4694,23 +4700,46 @@ void *pcur_fetch_pio(void *data)//pcur_fetch_pio_data)
 		rec = btr_pcur_get_rec(cursor);
 		if (!page_rec_is_supremum(rec) && !page_rec_is_infimum(rec))
 		{
+
 			while (pio_rec_queue_f[pio_rec_queue_tn]+1 == pio_rec_queue_s[pio_rec_queue_tn] || (pio_rec_queue_f[pio_rec_queue_tn]+1 == *pio_rec_queue_max_level && pio_rec_queue_s[pio_rec_queue_tn] == 0))
 {
-	//full!!!
-	sleep(1);
+//	pthread_cond_wait(&prebuilt->pio_rec_cond_s[pio_rec_queue_tn],NULL);
+//	printf("fetch tn %lu s %lu f %lu\n",pio_rec_queue_tn,pio_rec_queue_s[pio_rec_queue_tn],pio_rec_queue_f[pio_rec_queue_tn]);
+//	prebuilt->pio_cnt_rec_queue_f[pio_rec_queue_tn]++;
+//sleep(1);
 }
 
-			pio_rec_queue[pio_rec_queue_f[pio_rec_queue_tn]*(*pio_max_tn)+pio_rec_queue_tn] = rec;
+/*
+while (true)
+{
+			if ((pio_rec_queue_f[pio_rec_queue_tn]+1 == pio_rec_queue_s[pio_rec_queue_tn] || (pio_rec_queue_f[pio_rec_queue_tn]+1 == *pio_rec_queue_max_level && pio_rec_queue_s[pio_rec_queue_tn] == 0)) == false)
+break;
+//	printf("yyy\n");
+//	printf("fetch tn %lu s %lu f %lu\n",pio_rec_queue_tn,pio_rec_queue_s[pio_rec_queue_tn],pio_rec_queue_f[pio_rec_queue_tn]);
+//	printf("yyy %lu",pio_rec_queue_tn);
+//	printf("s %lu f %lu \n",pio_rec_queue_s[pio_rec_queue_tn],pio_rec_queue_f[pio_rec_queue_tn]);
+}
+*/
+
+
+
+//			pio_rec_queue[pio_rec_queue_f[pio_rec_queue_tn]*(*pio_max_tn)+pio_rec_queue_tn] = rec;
+
 			pio_rec_queue_f[pio_rec_queue_tn]++;
 			if (pio_rec_queue_f[pio_rec_queue_tn] >= *pio_rec_queue_max_level)
 				pio_rec_queue_f[pio_rec_queue_tn] = 0;
 
+//			pthread_cond_signal(&prebuilt->pio_rec_cond_f[pio_rec_queue_tn]);
+
 			pio_rec_queue_tn++;
 			if (pio_rec_queue_tn >= *pio_max_tn)
 				pio_rec_queue_tn = 0;
-		}
 
+		}
+i++;
+printf("p %d t %lu\n",i,pio_rec_queue_tn);
 		btr_pcur_move_to_next(cursor,&mtr);
+
 
 	}
 
@@ -4727,6 +4756,9 @@ mtr.commit();
 prebuilt->pio_on=false;
 
 free(data);
+
+printf("pcur fetch pio f\n");
+
 	pthread_exit(NULL);
 
 }
@@ -4756,7 +4788,7 @@ void *rec_convert_pio(void *data)
 {
 	//pio_rec_queue->convert->fetch_cache_pio
 	ulint pio_tn = ((rec_convert_pio_data_t*)data)->pio_tn;
-	row_prebuilt_t* prebuilt = ((pcur_fetch_pio_data_t*)data)->prebuilt;
+	row_prebuilt_t* prebuilt = ((rec_convert_pio_data_t*)data)->prebuilt;
 
 	ibool* pio_on = &prebuilt->pio_on;
 
@@ -4783,34 +4815,69 @@ void *rec_convert_pio(void *data)
 
 	mem_heap_t*	heap = NULL;
 
+printf("convert pio %lu s\n",pio_tn);
 	while(*pio_on)
 {
 
-	while(*pio_on && pio_rec_queue_s[pio_tn] == pio_rec_queue_f[pio_tn]);	//spin
-	if (*pio_on == FALSE &&  pio_rec_queue_s[pio_tn] == pio_rec_queue_f[pio_tn])
+	while(*pio_on && pio_rec_queue_s[pio_tn] == pio_rec_queue_f[pio_tn])	//spin
+{
+//sleep(1);
+//		printf("convert rec tn %lu s %lu f %lu\n",pio_tn,pio_rec_queue_s[pio_tn],pio_rec_queue_f[pio_tn]);
+//		pthread_cond_wait(&prebuilt->pio_rec_cond_f[pio_tn],NULL);
+//	prebuilt->pio_cnt_rec_queue_f[pio_tn]++;
+}
+/*
+while(true)
+{
+	if((*pio_on && pio_rec_queue_s[pio_tn] == pio_rec_queue_f[pio_tn]) == false)	//spin
 		break;
-	while((pio_result_queue_f[pio_tn]+1 == *pio_result_queue_max_level && pio_result_queue_s[pio_tn] == 0) || pio_result_queue_f[pio_tn]+1 == pio_result_queue_s[pio_tn]);
+	printf("xxx\n");
+//		printf("convert rec tn %lu s %lu f %lu\n",pio_tn,pio_rec_queue_s[pio_tn],pio_rec_queue_f[pio_tn]);
+//	printf("xxxxx %lu ",pio_tn);
+//	printf("%lu %lu\n",pio_rec_queue_s[pio_tn],pio_rec_queue_f[pio_tn]);
+}
+	if (*pio_on == false && pio_rec_queue_s[pio_tn] == pio_rec_queue_f[pio_tn])
+		break;
+*/
+//printf("000\n");
+	while((pio_result_queue_f[pio_tn]+1 == *pio_result_queue_max_level && pio_result_queue_s[pio_tn] == 0) || pio_result_queue_f[pio_tn]+1 == pio_result_queue_s[pio_tn])
+		printf("convert result tn %lu s %lu f %lu\n",pio_tn,pio_result_queue_s[pio_tn],pio_result_queue_f[pio_tn]);
 
+/*
+while(true)
+{
+	if(((pio_result_queue_f[pio_tn]+1 == *pio_result_queue_max_level && pio_result_queue_s[pio_tn] == 0) || pio_result_queue_f[pio_tn]+1 == pio_result_queue_s[pio_tn]) == false)
+		break;
+//		printf("convert result tn %lu s %lu f %lu\n",pio_tn,pio_result_queue_s[pio_tn],pio_result_queue_f[pio_tn]);
+}
+*/
+printf("ct %lu\n",pio_tn);
+/*
 	innodb_rec = pio_rec_queue[*pio_max_tn*pio_rec_queue_s[pio_tn]+pio_tn];
 	mysql_rec = pio_result_queue[*pio_max_tn*pio_result_queue_s[pio_tn]+pio_tn];
 
 	if (heap == NULL) // really??	
 		offsets = rec_get_offsets(innodb_rec,index,offsets,ULINT_UNDEFINED,&heap);
 	row_sel_store_mysql_rec(mysql_rec,prebuilt,innodb_rec,NULL,FALSE,index,offsets);
-
+*/
 
 	pio_rec_queue_s[pio_tn]++;
 	if (pio_rec_queue_s[pio_tn] >= *pio_rec_queue_max_level)
-		pio_rec_queue_s = 0;
+		pio_rec_queue_s[pio_tn] = 0;
 
+//	pthread_cond_signal(&prebuilt->pio_rec_cond_s[pio_tn]);
+
+/*
 	pio_result_queue_f[pio_tn]++;
 	if (pio_result_queue_f[pio_tn] >= *pio_result_queue_max_level)
 		pio_result_queue_f[pio_tn] = 0;
+*/
 }
 
 	if (heap != NULL)
 		mem_heap_free(heap);
 free(data);
+printf("convert pio f\n");
 pthread_exit(NULL);
 }
 
@@ -4824,26 +4891,52 @@ void pio2(row_prebuilt_t* prebuilt,btr_pcur_t* pcur)
 	pthread_t rec_convert_pio_thread[16];
 	rec_convert_pio_data_t* rec_convert_pio_data[16];
 
-	int i;
+	ulint i;
+
+	row_sel_prefetch_cache_init_pio(prebuilt);
 
 	pcur_fetch_pio_data = (pcur_fetch_pio_data_t*)malloc(sizeof(pcur_fetch_pio_data_t));
 	pcur_fetch_pio_data->prebuilt = prebuilt;
 	pcur_fetch_pio_data->pcur = pcur;
 
-	for (i=0;i<8;++i)
+	for (i=0;i<8;i++)
 	{
+/*
+		prebuilt->pio_rec_cond_s[i] = PTHREAD_COND_INITIALIZER;
+		prebuilt->pio_rec_cond_f[i] = PTHREAD_COND_INITIALIZER;
+
+		prebuilt->pio_result_cond_s[i] = PTHREAD_COND_INITIALIZER;
+		prebuilt->pio_result_cond_f[i] = PTHREAD_COND_INITIALIZER;
+*/
+/*
+		pthread_cond_init(&prebuilt->pio_rec_cond_s[i],NULL);
+		pthread_cond_init(&prebuilt->pio_rec_cond_f[i],NULL);
+		pthread_cond_init(&prebuilt->pio_result_cond_s[i],NULL);
+		pthread_cond_init(&prebuilt->pio_result_cond_f[i],NULL);
+*/
+		prebuilt->pio_cnt_rec_queue_s[i] = 0;
+		prebuilt->pio_cnt_rec_queue_f[i] = 0;
+		prebuilt->pio_cnt_result_queue_s[i] = 0;
+		prebuilt->pio_cnt_result_queue_f[i] = 0;
 
 		rec_convert_pio_data[i] = (rec_convert_pio_data_t*)malloc(sizeof(rec_convert_pio_data_t));
 		rec_convert_pio_data[i]->prebuilt = prebuilt;
 		rec_convert_pio_data[i]->pio_tn = i;
 	}
 
+	prebuilt->pio_on = true;
+
 	pthread_create(&pcur_fetch_pio_thread,NULL,&pcur_fetch_pio,(void*)(pcur_fetch_pio_data));
 
 	for (i=0;i<8;++i)
 		pthread_create(&rec_convert_pio_thread[i],NULL,&rec_convert_pio,(void*)(rec_convert_pio_data[i]));
 
+	//test
+	for (i=0;i<8;++i)
+		pthread_join(rec_convert_pio_thread[i],NULL);
 
+//	pthread_join(pcur_fetch_pio_thread,NULL);
+	printf("te\n");
 
 }
 
@@ -5646,7 +5739,7 @@ if (pio_t > 0)
 	printf("cgmin\n");
 //	btr_cur_open_at_rnd_pos(index,BTR_SEARCH_LEAF,btr_pcur_get_btr_cur(pcur),&mtr);	
 //printf("pio test\n");
-
+/*
 	btr_pcur_t pcur_pio[128];
 	ulint page_id_pio[128];
 	mtr_t mtr_pio[128];
@@ -5660,13 +5753,18 @@ if (pio_t > 0)
 //	printf("cp\n");
 //	close_pio(&pio_t,pcur_pio,&mtr0);
 	printf("ep\n");
-
+*/
 
 // cpu part
+printf("pcur o\n");
 			btr_pcur_open_at_index_side(
 			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
 			pcur, false, 0, &mtr);
+printf("pio2 s\n");
 pio2(prebuilt,pcur);
+printf("pio2 f\n");
+
+return row_search_mvcc_pio(buf,mode,prebuilt,match_mode,ROW_SEL_NEXT,pio_t);
 
 //return ???
 

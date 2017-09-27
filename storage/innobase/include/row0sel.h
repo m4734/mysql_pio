@@ -231,6 +231,17 @@ It also has optimization such as pre-caching the rows, using AHI, etc.
 				traced using alternative condition
 				at caller level.
 @return DB_SUCCESS or error code */
+
+dberr_t
+row_search_mvcc_pio(
+	byte*		buf,
+	page_cur_mode_t	mode,
+	row_prebuilt_t*	prebuilt,
+	ulint		match_mode,
+	ulint		direction
+,int pio_t)
+	MY_ATTRIBUTE((warn_unused_result));
+
 dberr_t
 row_search_mvcc(
 	byte*		buf,

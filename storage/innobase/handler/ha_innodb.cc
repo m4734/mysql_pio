@@ -8936,11 +8936,15 @@ ha_innobase::general_fetch(
 	dberr_t	ret;
 
 	if (!intrinsic) {
-
-		ret = row_search_mvcc(
+		if (pio_t > 0)
+			ret = row_search_mvcc_pio(
 			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,
 			direction,pio_t);
-			pio_t = 0;
+else
+	ret = row_search_mvcc(
+			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,
+			direction,pio_t);
+		pio_t = 0;
 	} else {
 		ret = row_search_no_mvcc(
 			buf, PAGE_CUR_UNSUPP, m_prebuilt, match_mode,

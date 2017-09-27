@@ -1060,7 +1060,8 @@ row_prebuilt_free(
 	}
 
 //cgmin
-		if (prebuilt->pio_result_queue[0] != NULL) {
+		if (prebuilt->pio_init) {
+		prebuilt->pio_init = false;
 		byte*	base = prebuilt->pio_result_queue[0] - 4;
 		byte*	ptr = base;
 
@@ -1077,7 +1078,7 @@ row_prebuilt_free(
 			ut_a(magic2 == ROW_PREBUILT_FETCH_MAGIC_N);
 			ptr += 4;
 		}
-
+		
 		ut_free(base);
 	}
 

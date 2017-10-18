@@ -1289,48 +1289,6 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
   end_read_record();
 @endcode        
 */
-/*
-DBUG_PRINT("cgmin", ("pio start"));
-
-while (rc == NESTED_LOOP_OK)
-{
-	int error;
-
-//gettimeofday(&ttt,NULL);
-
-	if (in_first_read)
-	{
-		in_first_read = false;
-		error= (*qep_tab->read_first_record)(qep_tab);
-	}
-	else
-		error= info->read_record(info);
-
-//gettimeofday(&ttt2,NULL);
-//DBUG_PRINT("cgmin",("pio read_record %ld --- %ld:%ld-%ld:%ld",(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec),ttt2.tv_sec,ttt2.tv_usec,ttt.tv_sec,ttt.tv_usec));
-
-
-	if (error > 0 || (join->thd->is_error()))
-		rc = NESTED_LOOP_ERROR;
-	else if (error < 0)
-		break;
-	else if (join->thd->killed)
-	{
-		join->thd->send_kill_message();
-		rc= NESTED_LOOP_KILLED;
-	}
-}
-
-DBUG_PRINT("cgmin",( "pio end"));
-*/
-
-//printf("sub_sel\n");
-
-//printf("cgmin\n");
-
-//rc = NESTED_LOOP_OK;
-//in_first_read = true;
-
 
 //cgmin
 

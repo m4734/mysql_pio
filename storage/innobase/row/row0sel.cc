@@ -5804,7 +5804,7 @@ if (pio_t > 0)
 //	close_pio(&pio_t,pcur_pio,&mtr0);
 	printf("ep\n");
 
-
+/*
 // cpu part
 printf("pcur o\n");
 //			btr_pcur_open_at_index_side(
@@ -5817,9 +5817,9 @@ printf("pio2 f\n");
 return row_search_mvcc_pio(buf,mode,prebuilt,match_mode,ROW_SEL_NEXT,pio_t);
 
 //return ???
-
+*/
 }
-else
+//else
 		btr_pcur_open_at_index_side(
 			mode == PAGE_CUR_G, index, BTR_SEARCH_LEAF,
 			pcur, false, 0, &mtr);

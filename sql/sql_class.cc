@@ -2723,6 +2723,95 @@ bool Query_result_send::send_data(List<Item> &items)
   DBUG_RETURN(protocol->end_row());
 }
 
+//cgmin
+
+//bool Query_result_send::send_data_pio(List<Item> &items)
+bool Query_result::send_data_pio(List<Item> &items)
+{
+  if (unit->offset_limit_cnt)
+  {						// using limit offset,count
+    unit->offset_limit_cnt--;
+    DBUG_RETURN(FALSE);
+  }
+
+  /*
+    We may be passing the control from mysqld to the client: release the
+    InnoDB adaptive hash S-latch to avoid thread deadlocks if it was reserved
+    by thd
+  */
+  ha_release_temporary_latches(thd);
+
+int i;
+while(1)
+{
+for (i=0;i<MAX_PIO;++i)
+{
+	if (thd->pio3_run[i] == false)
+		break;
+}
+	if (i<MAX_PIO)
+		break;
+	usleep(1);
+}
+pthread_mutex_lock(&thd->pio3_mutex[i]);
+thd->pio3_run[i] = true;
+thd->pio3_items[i]=items;
+//thd->pio3_protocol[i] = *(thd->get_protocol());
+//thd->pio3_protocol[i].init(thd);
+//thd->pio3_protocol[i].packet = thd->pio3_packet[i];
+pthread_mutex_unlock(&thd->pio3_mutex[i]);
+pthread_cond_signal(&thd->pio3_cond[i]);
+
+return 0;
+}
+
+
+void *pio3_thd_pro(void* data)
+{
+
+
+THD* thd = ((pio3_data_t*)data)->thd;
+int i = ((pio3_data_t*)data)->pio_t;
+List<Item>* items = &thd->pio3_items[i];
+
+//  Protocol *protocol= thd->pio_get_protocol(i);
+Protocol *protocol = &thd->pio3_protocol[i];
+
+//	protocol->init_pio(thd,i);
+
+pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
+
+while(1)
+{
+
+//  protocol->start_row_pio();
+protocol->start_row();
+  if (thd->send_result_set_row(items)) //&
+  {
+printf("abort!\n");
+    protocol->abort_row();
+return NULL;
+//    DBUG_RETURN(TRUE);
+  }
+
+  thd->inc_sent_row_count(1);
+//???
+//protocol->end_row_pio();
+protocol->end_row();
+//  DBUG_RETURN(protocol->end_row());
+//pthread_mutex_lock(&thd->pio3_mutex[i]);
+thd->pio3_run[i] = false;
+pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
+if (thd->pio3_run[i] == false)
+{
+	pthread_mutex_unlock(&thd->pio3_mutex[i]);
+	free(data);
+	return NULL;
+}
+}
+
+}
+
 bool Query_result_send::send_eof()
 {
   /* 

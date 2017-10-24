@@ -1183,7 +1183,31 @@ bool Protocol_binary::end_row()
 
   return false;
 }
+//cgmin
 
+bool Protocol_pio::end_row()
+{
+printf("wite e\n");
+  MYSQL_ROWS *cur;
+  MYSQL_DATA *data= m_thd->pio3_cur_data[pio_t];
+
+  data->rows++;
+  if (!(cur= (MYSQL_ROWS *)alloc_root(alloc,
+                                      sizeof(MYSQL_ROWS)+packet->length())))
+  {
+    my_error(ER_OUT_OF_RESOURCES,MYF(0));
+    return true;
+  }
+  cur->data= (MYSQL_ROW)(((char *)cur) + sizeof(MYSQL_ROWS));
+  memcpy(cur->data, packet->ptr()+1, packet->length()-1);
+  cur->length= packet->length();      // To allow us to do sanity checks 
+
+  *data->embedded_info->prev_ptr= cur;
+  data->embedded_info->prev_ptr= &cur->next;
+  cur->next= 0;
+
+  return false;
+}
 
 /**
   Embedded library implementation of OK response.
@@ -1290,6 +1314,17 @@ void Protocol_binary::start_row()
   field_pos= 0;
 }
 
+//cgmin
+
+void Protocol_pio::start_row()
+{
+printf("wite s\n");
+  MYSQL_DATA *data= m_thd->pio3_cur_data[pio_t];
+  next_mysql_field= data->embedded_info->fields_list;
+  packet->length(bit_fields + 1);
+  memset(const_cast<char*>(packet->ptr()), 0, 1 + bit_fields);
+  field_pos= 0;
+}
 
 void Protocol_text::start_row()
 {

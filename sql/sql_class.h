@@ -183,6 +183,20 @@ enum enum_binlog_format {
 
 */
 
+
+//cgmin
+#define MAX_PIO 8
+
+struct pio3_data_t
+{
+	THD* thd;
+	int pio_t;
+};
+
+void *pio3_thd_pro(void* data);
+
+
+
 extern char internal_table_name[2];
 extern char empty_c_string[1];
 extern LEX_STRING EMPTY_STR;
@@ -1730,6 +1744,14 @@ public:
     return m_protocol;
   }
 
+//cgmin
+Protocol_pio pio3_protocol[MAX_PIO];
+
+Protocol *pio3_get_protocol(int i)
+{
+	return &pio3_protocol[i];
+}
+
   /**
     Asserts that the protocol is of type text or binary and then
     returns the m_protocol casted to Protocol_classic. This method
@@ -2115,7 +2137,74 @@ private:
   // but currently its design doesn't allow that.
   NET     net;                          // client connection descriptor
   String  packet;                       // dynamic buffer for network I/O
+
 public:
+
+//cgmin
+bool pio3_on;
+NET pio3_net[MAX_PIO];
+String pio3_packet[MAX_PIO];
+bool pio3_run[MAX_PIO];
+pthread_t pio3_t[MAX_PIO];
+  struct st_mysql_data *pio3_cur_data[MAX_PIO];
+
+//protocol???
+//Protocol_binary pio3_procotol[MAX_PIO];
+List<Item> pio3_items[MAX_PIO];
+
+//thread
+pthread_mutex_t pio3_mutex[MAX_PIO];
+pthread_cond_t pio3_cond[MAX_PIO];
+/*
+struct pio3_data_t
+{
+	THD* thd;
+	int pio_t;
+};
+*/
+
+//void* pio3_thd_pro(void* data);
+
+
+void pio3_init()
+{
+	int i;
+	for (i=0;i<MAX_PIO;i++)
+	{
+pio3_protocol[i].init(this,i);
+		pthread_mutex_init(&pio3_mutex[i],NULL);
+		pthread_cond_init(&pio3_cond[i],NULL);
+		pio3_run[i] = false;
+		
+		pio3_data_t* data;
+		data = (pio3_data_t*)malloc(sizeof(pio3_data_t));
+		data->thd = this;
+		data->pio_t = i;
+		
+		pthread_create(&pio3_t[i],NULL,pio3_thd_pro,(void*)(data));
+	}
+}
+
+void pio3_end()
+{
+	int i;
+	for (i=0;i<MAX_PIO;++i)
+	{
+		while(pio3_run[i])
+		{
+			usleep(1);
+		}
+		pio3_run[i] = false;
+		pthread_cond_signal(&pio3_cond[i]);
+		pthread_join(pio3_t[i],NULL);
+
+
+pio3_protocol[i].end_net();
+	}
+}
+
+
+//public:
   void issue_unsafe_warnings();
 
   uint get_binlog_table_maps() const {
@@ -4449,6 +4538,9 @@ private:
   LEX_CSTRING m_invoker_host;
   friend class Protocol_classic;
 
+//cgmin
+friend class Protocol_pio;
+
 private:
   /**
     Optimizer cost model for server operations.
@@ -4774,6 +4866,12 @@ public:
   { return fields.elements; }
   virtual bool send_result_set_metadata(List<Item> &list, uint flags)=0;
   virtual bool send_data(List<Item> &items)=0;
+
+//cgmin
+//	virtual bool send_data_pio(List<Item> &items)=0;
+bool send_data_pio(List<Item> &items);
+
+
   virtual bool initialize_tables (JOIN *join=0) { return 0; }
   virtual void send_error(uint errcode,const char *err)
   { my_message(errcode, err, MYF(0)); }
@@ -4842,6 +4940,10 @@ public:
   Query_result_send() :is_result_set_started(false) {}
   bool send_result_set_metadata(List<Item> &list, uint flags);
   bool send_data(List<Item> &items);
+
+//cgmin
+//bool send_data_pio(List<Item> &items);
+
   bool send_eof();
   virtual bool check_simple_select() const { return FALSE; }
   void abort_result_set();

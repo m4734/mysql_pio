@@ -612,6 +612,22 @@ uchar *net_store_data(uchar *to, longlong from)
   Protocol_classic functions
 *****************************************************************************/
 
+//cgmin
+void Protocol_pio::init(THD *thd_arg,int i)
+{
+	pio_t = i;
+
+  m_thd= thd_arg;
+  packet= &m_thd->pio3_packet[i];
+  convert= &m_thd->convert_buffer;
+#ifndef DBUG_OFF
+  field_types= 0;
+#endif
+
+
+	init_net(m_thd->net.vio);
+}
+
 void Protocol_classic::init(THD *thd_arg)
 {
   m_thd= thd_arg;
@@ -621,7 +637,6 @@ void Protocol_classic::init(THD *thd_arg)
   field_types= 0;
 #endif
 }
-
 
 /**
   A default implementation of "OK" packet response to the client.
@@ -706,6 +721,13 @@ bool Protocol_classic::init_net(Vio *vio)
   return my_net_init(&m_thd->net, vio);
 }
 
+//cgmin
+bool Protocol_pio::init_net(Vio *vio)
+{
+	return my_net_init(&m_thd->pio3_net[pio_t],vio);
+}
+
+
 void Protocol_classic::claim_memory_ownership()
 {
   net_claim_memory_ownership(&m_thd->net);
@@ -717,6 +739,15 @@ void Protocol_classic::end_net()
   net_end(&m_thd->net);
   m_thd->net.vio= NULL;
 }
+
+//cgmin
+void Protocol_pio::end_net()
+{
+  DBUG_ASSERT(m_thd->pio3_net[pio_t].buff); //??
+  net_end(&m_thd->pio3_net[pio_t]);
+  m_thd->pio3_net[pio_t].vio= NULL;
+}
+
 
 
 bool Protocol_classic::flush_net()
@@ -1198,6 +1229,18 @@ bool Protocol_classic::end_row()
                              packet->length()));
   DBUG_RETURN(0);
 }
+
+bool Protocol_pio::end_row()
+{
+  DBUG_ENTER("Protocol_classic::end_row");
+  if (m_thd->pio3_protocol[pio_t].connection_alive())
+    DBUG_RETURN(my_net_write(&m_thd->pio3_net[pio_t], (uchar *) packet->ptr(),
+                             packet->length()));
+  DBUG_RETURN(0);
+
+
+}
+
 #endif /* EMBEDDED_LIBRARY */
 
 
@@ -1558,6 +1601,12 @@ void Protocol_binary::start_row()
   packet->length(bit_fields+1);
   memset(const_cast<char*>(packet->ptr()), 0, 1+bit_fields);
   field_pos=0;
+}
+
+//cgmin
+void Protocol_pio::start_row()
+{
+	return Protocol_binary::start_row();
 }
 #endif
 

@@ -341,6 +341,14 @@ void Protocol_callback::start_row()
     callbacks.start_row(callbacks_ctx);
 }
 
+//cgmin
+/*
+void Protocol_callback::start_row_pio()
+{
+	//what
+	start_row();
+}
+*/
 /**
   Called AFTER sending all fields of a row, or after field_metadata().
   Please read the big comment in start_row() for explanation why
@@ -358,6 +366,13 @@ bool Protocol_callback::end_row()
   return false;
 }
 
+//cgmin
+/*
+void Protocol_callback::end_row_pio()
+{
+	end_row();//????
+}
+*/
 /**
   Called when a row is aborted
 */

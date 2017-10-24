@@ -68,6 +68,10 @@ protected:
   virtual bool send_error(uint sql_errno, const char *err_msg,
                           const char *sql_state);
 public:
+
+//cgmin
+//	int pio_t;
+
   bool bad_packet;
   Protocol_classic(): send_metadata(false), bad_packet(true) {}
   Protocol_classic(THD *thd):
@@ -80,6 +84,10 @@ public:
   }
   virtual ~Protocol_classic() {}
   void init(THD* thd_arg);
+
+//cgmin
+//	void init_pio(THD* thd_arg,int i);
+
   virtual int read_packet();
   virtual int get_command(COM_DATA *com_data, enum_server_command *cmd);
   /**
@@ -104,6 +112,11 @@ public:
   virtual bool send_out_parameters(List<Item_param> *sp_params)=0;
   virtual void start_row()=0;
   virtual bool end_row();
+
+//cgmin
+//virtual void start_row_pio()=0;
+//virtual bool end_row_pio();
+
   virtual uint get_rw_status();
   virtual bool get_compression();
 
@@ -135,9 +148,17 @@ public:
   // NET interaction functions
   /* Initialize NET */
   bool init_net(Vio *vio);
+
+//cgmin
+//bool init_net_pio(Vio *vio);
+
   void claim_memory_ownership();
   /* Deinitialize NET */
   void end_net();
+
+//cgmin
+//void end_net_pio();
+
   /* Flush NET buffer */
   bool flush_net();
   /* Write data to NET buffer */
@@ -230,6 +251,9 @@ public:
   virtual bool store(Proto_field *field);
   virtual void start_row();
 
+//
+//virtual void start_row_pio();
+
   virtual bool send_out_parameters(List<Item_param> *sp_params);
 #ifdef EMBEDDED_LIBRARY
   virtual void abort_row();
@@ -244,13 +268,19 @@ protected:
 
 class Protocol_binary : public Protocol_text
 {
-private:
+//private:
+protected:
   uint bit_fields;
 public:
   Protocol_binary() {}
   Protocol_binary(THD *thd_arg) :Protocol_text(thd_arg) {}
   virtual void start_row();
+
+//cgmin
+//virtual void start_row_pio();
+
 #ifdef EMBEDDED_LIBRARY
+//virtual bool end_row_pio();
   virtual bool end_row();
   bool net_store_data(const uchar *from, size_t length);
   bool net_store_data(const uchar *from, size_t length,
@@ -281,6 +311,21 @@ protected:
   virtual bool store(const char *from, size_t length,
                      const CHARSET_INFO *fromcs,
                      const CHARSET_INFO *tocs);
+};
+
+//cgmin
+class Protocol_pio : public Protocol_binary
+{
+public:
+	int pio_t;
+	virtual void start_row();
+//#ifdef EMBEDDED_LIBRARY
+	virtual bool end_row();
+//#endif
+	void init(THD* thd_arg,int i);
+	bool init_net(Vio *vio);
+	void end_net();
+
 };
 
 bool net_send_error(THD *thd, uint sql_errno, const char *err);

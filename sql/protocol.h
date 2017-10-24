@@ -41,6 +41,7 @@ class Proto_field;
 
 class Protocol {
 public:
+
   /**
     Read packet from client
 
@@ -193,6 +194,12 @@ public:
   virtual bool end_row()= 0;
   virtual void abort_row()= 0;
   virtual void end_partial_result_set()= 0;
+
+//cgmin
+
+//virtual void start_row_pio()=0;
+//virtual bool end_row_pio()=0;
+
 
   /**
     Thread is being shut down, disconnect and free resources

@@ -1298,6 +1298,14 @@ struct timeval ttt,ttt2;
 //gettimeofday(&ttt2,NULL);
 
 
+//pio3 create
+//if???
+join->thd->pio3_on = true;
+if (join->thd->pio3_on)
+	join->thd->pio3_init();
+
+
+
   while (rc == NESTED_LOOP_OK && join->return_tab >= qep_tab_idx)
   {
     int error;
@@ -1349,6 +1357,15 @@ s2+=(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec);
 //gettimeofday(&ttt,NULL);
 //printf("evaluate_join_record %ld --- %ld:%ld-%ld:%ld\n",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec),ttt.tv_sec,ttt.tv_usec,ttt2.tv_sec,ttt2.tv_usec);
 printf("s0 %d\ns1 %d\ns2 %d\n",s0,s1,s2);
+
+
+
+// pio3 destroy
+if (join->thd->pio3_on)
+	join->thd->pio3_end();
+
+
+
   if (rc == NESTED_LOOP_OK &&
       qep_tab->last_inner() != NO_PLAN_IDX &&
       !qep_tab->found)
@@ -2962,7 +2979,13 @@ end_send(JOIN *join, QEP_TAB *qep_tab, bool end_of_records)
       DBUG_RETURN(NESTED_LOOP_OK);               // Didn't match having
     error=0;
     if (join->do_send_rows)
+{
+	if (join->thd->pio3_on)
+		error = join->select_lex->query_result()->send_data_pio(*fields);
+else
       error= join->select_lex->query_result()->send_data(*fields);
+}
+//	error=join->select_lex->query_result()->send_data_pio(*fields);
     if (error)
       DBUG_RETURN(NESTED_LOOP_ERROR); /* purecov: inspected */
 

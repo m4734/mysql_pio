@@ -1790,6 +1790,7 @@ bool dispatch_command(THD *thd, const COM_DATA *com_data,
 #else
     // TODO: access of protocol_classic should be removed.
     // should be rewritten using store functions
+printf("COM_STATISTICS\n");
     thd->get_protocol_classic()->write((uchar*) buff, length);
     thd->get_protocol_classic()->flush_net();
     thd->get_stmt_da()->disable_status();

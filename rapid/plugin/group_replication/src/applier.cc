@@ -202,6 +202,10 @@ void
 Applier_module::clean_applier_thread_context()
 {
   applier_thd->get_protocol_classic()->end_net();
+
+//cgmin
+applier_thd->end_net_pio();
+
   applier_thd->release_resources();
   THD_CHECK_SENTRY(applier_thd);
   global_thd_manager_remove_thd(applier_thd);

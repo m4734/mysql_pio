@@ -185,7 +185,7 @@ enum enum_binlog_format {
 
 
 //cgmin
-#define MAX_PIO 8
+#define MAX_PIO 1
 
 struct pio3_data_t
 {
@@ -2141,9 +2141,12 @@ private:
 public:
 
 //cgmin
+int mc;
+
 bool pio3_on;
 NET pio3_net[MAX_PIO];
 String pio3_packet[MAX_PIO];
+String pio3_convert_buffer[MAX_PIO];
 bool pio3_run[MAX_PIO];
 pthread_t pio3_t[MAX_PIO];
   struct st_mysql_data *pio3_cur_data[MAX_PIO];
@@ -2165,16 +2168,33 @@ struct pio3_data_t
 
 //void* pio3_thd_pro(void* data);
 
-
-void pio3_init()
+void pio3_protocol_init()
 {
 	int i;
 	for (i=0;i<MAX_PIO;i++)
+		pio3_protocol[i].init(this,i);
+}
+
+void pio3_init_net(Vio *vio)
+{
+	int i;
+	for (i=0;i<MAX_PIO;i++)
+		pio3_protocol[i].init_net(vio);
+}
+
+void pio3_init()
+{
+printf("pio3_init s\n");
+	int i;
+	for (i=0;i<MAX_PIO;i++)
 	{
-pio3_protocol[i].init(this,i);
+//pio3_protocol[i].init_net(net.vio);
+
+		pio3_net[i].pkt_nr = net.pkt_nr; // temp
+
 		pthread_mutex_init(&pio3_mutex[i],NULL);
 		pthread_cond_init(&pio3_cond[i],NULL);
-		pio3_run[i] = false;
+		pio3_run[i] = true;
 		
 		pio3_data_t* data;
 		data = (pio3_data_t*)malloc(sizeof(pio3_data_t));
@@ -2183,10 +2203,24 @@ pio3_protocol[i].init(this,i);
 		
 		pthread_create(&pio3_t[i],NULL,pio3_thd_pro,(void*)(data));
 	}
+	while(1)
+	{
+		for (i=0;i<MAX_PIO;i++)
+		{
+			if (pio3_run[i])
+				break;
+		}
+		if (i>=MAX_PIO)
+			break;
+		usleep(1);
+	}
+printf("pio3_init e\n");
 }
 
 void pio3_end()
 {
+printf("pio3_end s\n");
+//scanf("%d");
 	int i;
 	for (i=0;i<MAX_PIO;++i)
 	{
@@ -2197,12 +2231,21 @@ void pio3_end()
 		pio3_run[i] = false;
 		pthread_cond_signal(&pio3_cond[i]);
 		pthread_join(pio3_t[i],NULL);
-
-
-pio3_protocol[i].end_net();
+printf("pio3 net_flush s\n");
+net_flush(&pio3_net[i]);
+printf("pio3 net_flush e\n");
+//pio3_protocol[i].end_net();
+net.pkt_nr = pio3_net[i].pkt_nr; // temp
 	}
+printf("pio3_end f\n");
 }
 
+void end_net_pio()
+{
+	int i;
+	for (i=0;i<MAX_PIO;i++)
+		pio3_protocol[i].end_net();
+}
 
 //public:
   void issue_unsafe_warnings();
@@ -4595,6 +4638,8 @@ public:
   */
 
   bool send_result_set_row(List<Item> *row_items);
+//cgmin
+bool send_result_set_row_pio(List<Item> *row_itmes,int i);
 
 
   /*

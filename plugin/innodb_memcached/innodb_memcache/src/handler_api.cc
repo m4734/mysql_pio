@@ -370,6 +370,10 @@ handler_close_thd(
 
 	/* destructor will not free it, because net.vio is 0. */
 	thd->get_protocol_classic()->end_net();
+
+//cgmin
+thd->end_net_pio();
+
 	thd->release_resources();
 	delete (thd);
 }

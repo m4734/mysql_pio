@@ -321,11 +321,51 @@ public:
 	virtual void start_row();
 //#ifdef EMBEDDED_LIBRARY
 	virtual bool end_row();
+/*
+  bool net_store_data(const uchar *from, size_t length);
+  bool net_store_data(const uchar *from, size_t length,
+                      const CHARSET_INFO *fromcs,
+                      const CHARSET_INFO *tocs);
+*/
 //#endif
 	void init(THD* thd_arg,int i);
 	bool init_net(Vio *vio);
 	void end_net();
+	bool start_result_metadata(uint num_cols, uint flags, const CHARSET_INFO *result_cs);
+	int get_command(COM_DATA *com_data, enum_server_command *cmd);
 
+
+	bool flush_net();
+	bool write(const uchar *ptr, size_t len);
+	void wipe_net();
+	bool flush();
+//too many 
+  virtual bool store_null();
+/*
+  virtual bool store_tiny(longlong from);
+  virtual bool store_short(longlong from);
+  virtual bool store_long(longlong from);
+  virtual bool store_longlong(longlong from, bool unsigned_flag);
+  virtual bool store_decimal(const my_decimal *, uint, uint);
+  virtual bool store(MYSQL_TIME *time, uint precision);
+  virtual bool store_date(MYSQL_TIME *time);
+  virtual bool store_time(MYSQL_TIME *time, uint precision);
+  virtual bool store(float nr, uint32 decimals, String *buffer);
+  virtual bool store(double from, uint32 decimals, String *buffer);
+  virtual bool store(Proto_field *field);
+  virtual bool store(const char *from, size_t length, const CHARSET_INFO *cs)
+  { return store(from, length, cs, result_cs); }
+
+  virtual bool send_out_parameters(List<Item_param> *sp_params);
+  virtual bool start_result_metadata(uint num_cols, uint flags,
+                                     const CHARSET_INFO *resultcs);
+
+  virtual enum enum_protocol_type type() { return PROTOCOL_BINARY; };
+protected:
+  virtual bool store(const char *from, size_t length,
+                     const CHARSET_INFO *fromcs,
+                     const CHARSET_INFO *tocs);
+*/
 };
 
 bool net_send_error(THD *thd, uint sql_errno, const char *err);

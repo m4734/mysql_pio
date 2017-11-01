@@ -316,6 +316,8 @@ extern "C" void *handle_bootstrap(void *arg)
     thd->fatal_error();
     bootstrap_error= 1;
     thd->get_protocol_classic()->end_net();
+//cgmin
+thd->end_net_pio();
   }
   else
   {
@@ -325,6 +327,9 @@ extern "C" void *handle_bootstrap(void *arg)
     handle_bootstrap_impl(thd);
 
     thd->get_protocol_classic()->end_net();
+//cgmin
+thd->end_net_pio();
+
     thd->release_resources();
     thd_manager->remove_thd(thd);
   }

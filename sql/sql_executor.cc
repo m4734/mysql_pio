@@ -1300,9 +1300,13 @@ struct timeval ttt,ttt2;
 
 //pio3 create
 //if???
+//join->thd->pio3_on = false;
 join->thd->pio3_on = true;
 if (join->thd->pio3_on)
+{
+	join->thd->get_protocol_classic()->flush_net();
 	join->thd->pio3_init();
+}
 
 
 
@@ -1361,6 +1365,7 @@ printf("s0 %d\ns1 %d\ns2 %d\n",s0,s1,s2);
 
 
 // pio3 destroy
+//net_flush(&join->thd->pio3_net[0]); ???
 if (join->thd->pio3_on)
 	join->thd->pio3_end();
 

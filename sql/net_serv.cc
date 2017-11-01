@@ -216,8 +216,10 @@ my_bool net_flush(NET *net)
 {
   my_bool error= 0;
   DBUG_ENTER("net_flush");
+printf("net_flush s\n");
   if (net->buff != net->write_pos)
   {
+printf("net_flush\n");
     error= net_write_packet(net, net->buff,
                             (size_t) (net->write_pos - net->buff));
     net->write_pos= net->buff;
@@ -225,6 +227,7 @@ my_bool net_flush(NET *net)
   /* Sync packet number if using compression */
   if (net->compress)
     net->pkt_nr=net->compress_pkt_nr;
+printf("net_flush f\n");
   DBUG_RETURN(error);
 }
 
@@ -282,8 +285,10 @@ my_bool my_net_write(NET *net, const uchar *packet, size_t len)
   int rc;
 
   if (unlikely(!net->vio)) /* nowhere to write */
+{
+printf("my_net_write - no vio\n");
     return 0;
-
+}
   MYSQL_NET_WRITE_START(len);
 
   DBUG_EXECUTE_IF("simulate_net_write_failure", {
@@ -360,6 +365,7 @@ net_write_command(NET *net,uchar command,
       const uchar *header, size_t head_len,
       const uchar *packet, size_t len)
 {
+printf("net_write_command\n");
   size_t length=len+1+head_len;			/* 1 extra byte for command */
   uchar buff[NET_HEADER_SIZE+1];
   uint header_size=NET_HEADER_SIZE+1;
@@ -433,11 +439,16 @@ net_write_command(NET *net,uchar command,
 static my_bool
 net_write_buff(NET *net, const uchar *packet, size_t len)
 {
+printf("net_write_buff s\n");
   ulong left_length;
   if (net->compress && net->max_packet > MAX_PACKET_LENGTH)
     left_length= (ulong) (MAX_PACKET_LENGTH - (net->write_pos - net->buff));
   else
     left_length= (ulong) (net->buff_end - net->write_pos);
+int i;
+for (i=0;i<len;++i)
+	printf("%d ",packet[i]);
+printf("\n");
 
 #ifdef DEBUG_DATA_PACKETS
   DBUG_DUMP("data", packet, len);
@@ -476,6 +487,7 @@ net_write_buff(NET *net, const uchar *packet, size_t len)
   }
   memcpy(net->write_pos, packet, len);
   net->write_pos+= len;
+printf("net_write_buff f\n");
   return 0;
 }
 
@@ -494,6 +506,7 @@ static my_bool
 net_write_raw_loop(NET *net, const uchar *buf, size_t count)
 {
   unsigned int retry_count= 0;
+printf("net_write_raw_loop count %d /",(int)count);
 
   while (count)
   {
@@ -515,7 +528,7 @@ net_write_raw_loop(NET *net, const uchar *buf, size_t count)
     thd_increment_bytes_sent(sentcnt);
 #endif
   }
-
+printf("%d\n",count);
   /* On failure, propagate the error code. */
   if (count)
   {
@@ -526,7 +539,10 @@ net_write_raw_loop(NET *net, const uchar *buf, size_t count)
     if (vio_was_timeout(net->vio))
       net->last_errno= ER_NET_WRITE_INTERRUPTED;
     else
+{
       net->last_errno= ER_NET_ERROR_ON_WRITE;
+printf("packet write error\n");
+}
 
 #ifdef MYSQL_SERVER
     my_error(net->last_errno, MYF(0));
@@ -663,6 +679,7 @@ net_write_packet(NET *net, const uchar *packet, size_t length)
 
 static my_bool net_read_raw_loop(NET *net, size_t count)
 {
+printf("net_read_raw_loop count %d /",(int)count);
   bool eof= false;
   unsigned int retry_count= 0;
   uchar *buf= net->buff + net->where_b;
@@ -693,7 +710,7 @@ static my_bool net_read_raw_loop(NET *net, size_t count)
     thd_increment_bytes_received(recvcnt);
 #endif
   }
-
+printf("%d\n",(int)count);
   /* On failure, propagate the error code. */
   if (count)
   {
@@ -704,7 +721,10 @@ static my_bool net_read_raw_loop(NET *net, size_t count)
     if (!eof && vio_was_timeout(net->vio))
       net->last_errno= ER_NET_READ_INTERRUPTED;
     else
+{
+printf("packet read error\n");
       net->last_errno= ER_NET_READ_ERROR;
+}
 
 #ifdef MYSQL_SERVER
     my_error(net->last_errno, MYF(0));

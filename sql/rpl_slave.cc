@@ -5941,6 +5941,9 @@ err:
   // destructor will not free it, because net.vio is 0
   thd->get_protocol_classic()->end_net();
 
+//cgmin
+thd->end_net_pio();
+
   thd->release_resources();
   THD_CHECK_SENTRY(thd);
   if (thd_added)
@@ -6189,6 +6192,8 @@ err:
        /Alfranio
     */
     thd->get_protocol_classic()->end_net();
+//cgmin
+thd->end_net_pio();
 
     /*
       to avoid close_temporary_tables() closing temp tables as those
@@ -7467,6 +7472,10 @@ llstr(rli->get_group_master_log_pos(), llbuff));
   thd->temporary_tables = 0; // remove tempation from destructor to close them
   // destructor will not free it, because we are weird
   thd->get_protocol_classic()->end_net();
+
+//cgmin
+thd->end_net_pio();
+
   DBUG_ASSERT(rli->info_thd == thd);
   THD_CHECK_SENTRY(thd);
   mysql_mutex_lock(&rli->info_thd_lock);

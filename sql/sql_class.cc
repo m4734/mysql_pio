@@ -1221,6 +1221,10 @@ THD::THD(bool enable_plugins)
   protocol_binary.init(this);
   protocol_text.set_client_capabilities(0); // minimalistic client
 
+//cgmin
+	pio3_protocol_init();
+
+
   tablespace_op= false;
   substitute_null_with_insert_id = FALSE;
 
@@ -1806,6 +1810,9 @@ void THD::release_resources()
   {
     vio_delete(get_protocol_classic()->get_vio());
     get_protocol_classic()->end_net();
+
+//cgmin
+end_net_pio();
   }
 #endif
 
@@ -2696,7 +2703,8 @@ void Query_result_send::abort_result_set()
 
 bool Query_result_send::send_data(List<Item> &items)
 {
-  Protocol *protocol= thd->get_protocol();
+//  Protocol *protocol= &(thd->pio3_protocol[0]);
+Protocol *protocol = thd->get_protocol();
   DBUG_ENTER("Query_result_send::send_data");
 
   if (unit->offset_limit_cnt)
@@ -2728,6 +2736,7 @@ bool Query_result_send::send_data(List<Item> &items)
 //bool Query_result_send::send_data_pio(List<Item> &items)
 bool Query_result::send_data_pio(List<Item> &items)
 {
+printf("send_data_pio s\n");
   if (unit->offset_limit_cnt)
   {						// using limit offset,count
     unit->offset_limit_cnt--;
@@ -2753,15 +2762,20 @@ for (i=0;i<MAX_PIO;++i)
 		break;
 	usleep(1);
 }
+printf("sdp i %d\n",i);
 pthread_mutex_lock(&thd->pio3_mutex[i]);
 thd->pio3_run[i] = true;
-thd->pio3_items[i]=items;
+thd->pio3_items[i]=items; // problem
 //thd->pio3_protocol[i] = *(thd->get_protocol());
 //thd->pio3_protocol[i].init(thd);
 //thd->pio3_protocol[i].packet = thd->pio3_packet[i];
 pthread_mutex_unlock(&thd->pio3_mutex[i]);
 pthread_cond_signal(&thd->pio3_cond[i]);
-
+while(thd->pio3_run[i])
+{
+usleep(1);
+}
+printf("send_data_pio f\n");
 return 0;
 }
 
@@ -2778,15 +2792,21 @@ List<Item>* items = &thd->pio3_items[i];
 Protocol *protocol = &thd->pio3_protocol[i];
 
 //	protocol->init_pio(thd,i);
-
+thd->pio3_run[i] = false;
 pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
+if (thd->pio3_run[i] == false)
+{
+	pthread_mutex_unlock(&thd->pio3_mutex[i]);
+	free(data);
+	return NULL;
+}
 
 while(1)
 {
-
+printf("ptp %d\n",i);
 //  protocol->start_row_pio();
 protocol->start_row();
-  if (thd->send_result_set_row(items)) //&
+  if (thd->send_result_set_row_pio(items,i)) //&
   {
 printf("abort!\n");
     protocol->abort_row();
@@ -4694,7 +4714,11 @@ void THD::parse_error_at(const YYLTYPE &location, const char *s)
 
 bool THD::send_result_metadata(List<Item> *list, uint flags)
 {
-  DBUG_ENTER("send_result_metadata");
+bool rv = false;
+ mc++;
+printf("send result metadata s %d\n",mc);
+
+ DBUG_ENTER("send_result_metadata");
   List_iterator_fast<Item> it(*list);
   Item *item;
   uchar buff[MAX_FIELD_WIDTH];
@@ -4703,6 +4727,23 @@ bool THD::send_result_metadata(List<Item> *list, uint flags)
   if (m_protocol->start_result_metadata(list->elements, flags,
           variables.character_set_results))
     goto err;
+
+
+//if (pio3_on)
+//{
+int i;
+for (i=0;i<MAX_PIO;i++)
+{
+	  if (pio3_protocol[i].start_result_metadata(list->elements, flags,
+          variables.character_set_results))
+{
+printf("pio meta error\n");
+    goto err;
+}
+
+}
+
+//}
 
 #ifdef EMBEDDED_LIBRARY                  // bootstrap file handling
     if(!mysql)
@@ -4721,7 +4762,11 @@ bool THD::send_result_metadata(List<Item> *list, uint flags)
     if (flags & Protocol::SEND_DEFAULTS)
       item->send(m_protocol, &tmp);
     if (m_protocol->end_row())
+{
+printf("send result metadata ee %d\n",mc);
+
       DBUG_RETURN(true);
+}
 #else
       if(m_protocol->send_field_metadata(&field, item->charset_for_protocol()))
         goto err;
@@ -4730,9 +4775,12 @@ bool THD::send_result_metadata(List<Item> *list, uint flags)
 #endif
   }
 
-  DBUG_RETURN(m_protocol->end_result_metadata());
+  rv = m_protocol->end_result_metadata();
+printf("send result metadata e %d\n",mc);
+DBUG_RETURN(rv);
 
   err:
+printf("send result metadata eee %d\n",mc);
   my_error(ER_OUT_OF_RESOURCES, MYF(0));        /* purecov: inspected */
   DBUG_RETURN(1);                               /* purecov: inspected */
 }
@@ -4757,6 +4805,29 @@ bool THD::send_result_set_row(List<Item> *row_items)
   }
   DBUG_RETURN(false);
 }
+
+//cgmin
+bool THD::send_result_set_row_pio(List<Item> *row_items,int i)
+{
+  char buffer[MAX_FIELD_WIDTH];
+  String str_buffer(buffer, sizeof (buffer), &my_charset_bin);
+  List_iterator_fast<Item> it(*row_items);
+
+  DBUG_ENTER("send_result_set_row");
+
+  for (Item *item= it++; item; item= it++)
+  {
+    if (item->send(&pio3_protocol[i], &str_buffer) || is_error())
+      DBUG_RETURN(true);
+    /*
+      Reset str_buffer to its original state, as it may have been altered in
+      Item::send().
+    */
+    str_buffer.set(buffer, sizeof(buffer), &my_charset_bin);
+  }
+  DBUG_RETURN(false);
+}
+
 
 void THD::send_statement_status()
 {

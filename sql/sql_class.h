@@ -2190,7 +2190,7 @@ printf("pio3_init s\n");
 	{
 //pio3_protocol[i].init_net(net.vio);
 
-		pio3_net[i].pkt_nr = net.pkt_nr; // temp
+//		pio3_net[i].pio_pkt_nr = &net.pkt_nr; // temp
 
 		pthread_mutex_init(&pio3_mutex[i],NULL);
 		pthread_cond_init(&pio3_cond[i],NULL);
@@ -2235,7 +2235,7 @@ printf("pio3 net_flush s\n");
 net_flush(&pio3_net[i]);
 printf("pio3 net_flush e\n");
 //pio3_protocol[i].end_net();
-net.pkt_nr = pio3_net[i].pkt_nr; // temp
+//net.pkt_nr = pio3_net[i].pkt_nr; // temp
 	}
 printf("pio3_end f\n");
 }
@@ -4987,7 +4987,7 @@ public:
   bool send_data(List<Item> &items);
 
 //cgmin
-//bool send_data_pio(List<Item> &items);
+bool send_data_pio(List<Item> &items);
 
   bool send_eof();
   virtual bool check_simple_select() const { return FALSE; }

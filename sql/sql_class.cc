@@ -2706,7 +2706,7 @@ bool Query_result_send::send_data(List<Item> &items)
 //  Protocol *protocol= &(thd->pio3_protocol[0]);
 Protocol *protocol = thd->get_protocol();
   DBUG_ENTER("Query_result_send::send_data");
-
+printf("send_data s\n");
   if (unit->offset_limit_cnt)
   {						// using limit offset,count
     unit->offset_limit_cnt--;
@@ -2728,13 +2728,18 @@ Protocol *protocol = thd->get_protocol();
   }
 
   thd->inc_sent_row_count(1);
+printf("send_data f\n");
   DBUG_RETURN(protocol->end_row());
+
 }
 
 //cgmin
 
-//bool Query_result_send::send_data_pio(List<Item> &items)
 bool Query_result::send_data_pio(List<Item> &items)
+{
+return send_data(items);
+}
+bool Query_result_send::send_data_pio(List<Item> &items)
 {
 printf("send_data_pio s\n");
   if (unit->offset_limit_cnt)

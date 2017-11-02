@@ -1312,6 +1312,7 @@ if (join->thd->pio3_on)
 
   while (rc == NESTED_LOOP_OK && join->return_tab >= qep_tab_idx)
   {
+//printf("sub_select l s\n");
     int error;
 
 //cgmin
@@ -1355,7 +1356,7 @@ s1+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
 gettimeofday(&ttt,NULL);
 //printf("ejr %ld ",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec));
 s2+=(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec);
-
+//printf("sub_select l e\n");
 
   }
 //gettimeofday(&ttt,NULL);
@@ -2953,6 +2954,7 @@ void QEP_TAB::set_pushed_table_access_method(void)
 static enum_nested_loop_state
 end_send(JOIN *join, QEP_TAB *qep_tab, bool end_of_records)
 {
+//printf("end_send s\n");
   DBUG_ENTER("end_send");
   /*
     When all tables are const this function is called with jointab == NULL.
@@ -2983,6 +2985,7 @@ end_send(JOIN *join, QEP_TAB *qep_tab, bool end_of_records)
     if (join->having_cond && join->having_cond->val_int() == 0)
       DBUG_RETURN(NESTED_LOOP_OK);               // Didn't match having
     error=0;
+//printf("do_send_rows %d\n",(int)join->do_send_rows);
     if (join->do_send_rows)
 {
 	if (join->thd->pio3_on)
@@ -3062,6 +3065,7 @@ else
       DBUG_RETURN(NESTED_LOOP_CURSOR_LIMIT);
     }
   }
+//printf("end_send f nlo\n");
   DBUG_RETURN(NESTED_LOOP_OK);
 }
 

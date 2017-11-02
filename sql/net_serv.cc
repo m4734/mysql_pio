@@ -307,6 +307,8 @@ printf("my_net_write - no vio\n");
     const ulong z_size = MAX_PACKET_LENGTH;
     int3store(buff, z_size);
     buff[3]= (uchar) net->pkt_nr++;
+//    buff[3]= (uchar) *(net->pio_pkt_nr)++; // FAA?
+
     if (net_write_buff(net, buff, NET_HEADER_SIZE) ||
         net_write_buff(net, packet, z_size))
     {
@@ -319,6 +321,8 @@ printf("my_net_write - no vio\n");
   /* Write last packet */
   int3store(buff, static_cast<uint>(len));
   buff[3]= (uchar) net->pkt_nr++;
+//    buff[3]= (uchar) *(net->pio_pkt_nr)++; // FAA?
+
   if (net_write_buff(net, buff, NET_HEADER_SIZE))
   {
     MYSQL_NET_WRITE_DONE(1);

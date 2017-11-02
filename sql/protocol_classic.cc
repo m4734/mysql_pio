@@ -1671,6 +1671,7 @@ bool Protocol_binary::start_result_metadata(uint num_cols, uint flags,
 }
 
 //cgmin
+
 bool Protocol_pio::start_result_metadata(uint num_cols, uint flags,
                                             const CHARSET_INFO *cs)
 {
@@ -1686,14 +1687,14 @@ if (m_thd->get_protocol()->type() == Protocol::PROTOCOL_BINARY)
 //  send_metadata= true;
   field_count= num_cols;
   sending_flags= flags;
-/*
-  if (flags & Protocol::SEND_NUM_ROWS)
-  {
-    ulonglong tmp;
-    uchar *pos = net_store_length((uchar *) &tmp, num_cols);
-    my_net_write(&m_thd->net, (uchar *) &tmp, (size_t) (pos - ((uchar *) &tmp)));
-  }
-*/
+
+//  if (flags & Protocol::SEND_NUM_ROWS)
+//  {
+//    ulonglong tmp;
+//    uchar *pos = net_store_length((uchar *) &tmp, num_cols);
+//    my_net_write(&m_thd->net, (uchar *) &tmp, (size_t) (pos - ((uchar *) &tmp)));
+//  }
+
 #ifndef DBUG_OFF
   field_types= (enum_field_types*) m_thd->alloc(sizeof(field_types) * num_cols);
   count= 0;
@@ -2102,29 +2103,145 @@ bool Protocol_pio::store_null()
 {
 	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
 		return Protocol_binary::store_null();
+	else
+		return Protocol_text::store_null();
+}
+
+  bool Protocol_pio::store_tiny(longlong from)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store_tiny(from);
+	else
+		return Protocol_text::store_tiny(from);
+
+}
+ bool Protocol_pio::store_short(longlong from)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store_short(from);
+	else
+		return Protocol_text::store_short(from);
+
+}
+  bool Protocol_pio::store_long(longlong from)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store_long(from);
+	else
+		return Protocol_text::store_long(from);
+
+}
+  bool Protocol_pio::store_longlong(longlong from, bool unsigned_flag)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store_longlong(from,unsigned_flag);
+	else
+		return Protocol_text::store_longlong(from,unsigned_flag);
+
+}
+  bool Protocol_pio::store_decimal(const my_decimal *d, uint prec, uint dec)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store_decimal(d,prec,dec);
+	else
+		return Protocol_text::store_decimal(d,prec,dec);
+
+}
+  bool Protocol_pio::store(MYSQL_TIME *time, uint precision)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store(time,precision);
+	else
+		return Protocol_text::store(time,precision);
+
+}
+  bool Protocol_pio::store_date(MYSQL_TIME *time)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store_date(time);
+	else
+		return Protocol_text::store_date(time);
+
+}
+  bool Protocol_pio::store_time(MYSQL_TIME *time, uint precision)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store_time(time,precision);
+	else
+		return Protocol_text::store_time(time,precision);
+
+}
+  bool Protocol_pio::store(float nr, uint32 decimals, String *buffer)
+{
+   	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store(nr,decimals,buffer);
+	else
+		return Protocol_text::store(nr,decimals,buffer);
+
+}
+  bool Protocol_pio::store(double from, uint32 decimals, String *buffer)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store(from,decimals,buffer);
+	else
+		return Protocol_text::store(from,decimals,buffer);
+
+}
+  bool Protocol_pio::store(Proto_field *field)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store(field);
+	else
+		return Protocol_text::store(field);
+
+}
+  bool Protocol_pio::store(const char *from, size_t length, const CHARSET_INFO *cs)
+  {
+
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store(from,length,cs);
+	else
+		return Protocol_text::store(from,length,cs);
+
+
+ }
+
+  bool Protocol_pio::send_out_parameters(List<Item_param> *sp_params)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::send_out_parameters(sp_params);
+	else
+		return Protocol_text::send_out_parameters(sp_params);
+
 }
 /*
-  virtual bool store_tiny(longlong from);
-  virtual bool store_short(longlong from);
-  virtual bool store_long(longlong from);
-  virtual bool store_longlong(longlong from, bool unsigned_flag);
-  virtual bool store_decimal(const my_decimal *, uint, uint);
-  virtual bool store(MYSQL_TIME *time, uint precision);
-  virtual bool store_date(MYSQL_TIME *time);
-  virtual bool store_time(MYSQL_TIME *time, uint precision);
-  virtual bool store(float nr, uint32 decimals, String *buffer);
-  virtual bool store(double from, uint32 decimals, String *buffer);
-  virtual bool store(Proto_field *field);
-  virtual bool store(const char *from, size_t length, const CHARSET_INFO *cs)
-  { return store(from, length, cs, result_cs); }
+  bool Protocol_pio::start_result_metadata(uint num_cols, uint flags,const CHARSET_INFO *resultcs)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::start_result_metadata(num_cols,flags,resultcs);
+	else
+		return Protocol_classic::start_result_metadata(num_cols,flags,resultcs);
 
-  virtual bool send_out_parameters(List<Item_param> *sp_params);
-  virtual bool start_result_metadata(uint num_cols, uint flags,
-                                     const CHARSET_INFO *resultcs);
-
-  virtual enum enum_protocol_type type() { return PROTOCOL_BINARY; };
-protected:
-  virtual bool store(const char *from, size_t length,
-                     const CHARSET_INFO *fromcs,
-                     const CHARSET_INFO *tocs);
+}
 */
+/*
+  enum enum_protocol_type Protocol_pio::type()
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::type();
+	else
+		return Protocol_text::type();
+
+}
+*/
+  bool Protocol_pio::store(const char *from, size_t length,
+                     const CHARSET_INFO *fromcs,
+                     const CHARSET_INFO *tocs)
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::store(from,length,fromcs,tocs);
+	else
+		return Protocol_text::store(from,length,fromcs,tocs);
+
+}
+

@@ -341,7 +341,7 @@ public:
 	bool flush();
 //too many 
   virtual bool store_null();
-/*
+
   virtual bool store_tiny(longlong from);
   virtual bool store_short(longlong from);
   virtual bool store_long(longlong from);
@@ -353,19 +353,25 @@ public:
   virtual bool store(float nr, uint32 decimals, String *buffer);
   virtual bool store(double from, uint32 decimals, String *buffer);
   virtual bool store(Proto_field *field);
-  virtual bool store(const char *from, size_t length, const CHARSET_INFO *cs)
-  { return store(from, length, cs, result_cs); }
+  virtual bool store(const char *from, size_t length, const CHARSET_INFO *cs);
+//  { return store(from, length, cs, result_cs); }
 
   virtual bool send_out_parameters(List<Item_param> *sp_params);
-  virtual bool start_result_metadata(uint num_cols, uint flags,
-                                     const CHARSET_INFO *resultcs);
-
-  virtual enum enum_protocol_type type() { return PROTOCOL_BINARY; };
+//  virtual bool start_result_metadata(uint num_cols, uint flags,const CHARSET_INFO *resultcs);
+/*
+  virtual enum enum_protocol_type type()// { return PROTOCOL_BINARY; };
+{
+	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
+		return Protocol_binary::type();
+	else
+		return Protocol_text::type();
+}
+*/
 protected:
   virtual bool store(const char *from, size_t length,
                      const CHARSET_INFO *fromcs,
                      const CHARSET_INFO *tocs);
-*/
+
 };
 
 bool net_send_error(THD *thd, uint sql_errno, const char *err);

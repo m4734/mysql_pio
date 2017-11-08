@@ -185,7 +185,7 @@ enum enum_binlog_format {
 
 
 //cgmin
-#define MAX_PIO 1
+#define MAX_PIO 1 
 
 struct pio3_data_t
 {
@@ -2190,7 +2190,7 @@ printf("pio3_init s\n");
 	{
 //pio3_protocol[i].init_net(net.vio);
 
-//		pio3_net[i].pio_pkt_nr = &net.pkt_nr; // temp
+		pio3_net[i].pio_pkt_nr = &net.pkt_nr; // temp
 
 		pthread_mutex_init(&pio3_mutex[i],NULL);
 		pthread_cond_init(&pio3_cond[i],NULL);
@@ -4987,7 +4987,7 @@ public:
   bool send_data(List<Item> &items);
 
 //cgmin
-bool send_data_pio(List<Item> &items);
+//bool send_data_pio(List<Item> &items);
 
   bool send_eof();
   virtual bool check_simple_select() const { return FALSE; }

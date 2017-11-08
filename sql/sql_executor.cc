@@ -1301,7 +1301,7 @@ struct timeval ttt,ttt2;
 //pio3 create
 //if???
 //join->thd->pio3_on = false;
-join->thd->pio3_on = true;
+//join->thd->pio3_on = true;
 if (join->thd->pio3_on)
 {
 	join->thd->get_protocol_classic()->flush_net();

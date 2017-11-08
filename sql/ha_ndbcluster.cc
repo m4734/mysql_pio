@@ -16523,7 +16523,8 @@ next:
 ndb_util_thread_end:
   thd->get_protocol_classic()->end_net();
 //cgmin
-thd->end_net_pio();
+if (thd->pio3_on)
+	thd->end_net_pio();
 ndb_util_thread_fail:
   if (share_list)
     delete [] share_list;

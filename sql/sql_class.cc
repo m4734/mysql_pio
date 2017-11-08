@@ -1120,6 +1120,8 @@ THD::THD(bool enable_plugins)
    m_stmt_da(&main_da),
    duplicate_slave_id(false),
    is_a_srv_session_thd(false)
+,
+pio3_on(false) //cgmin
 {
   main_lex.reset();
   set_psi(NULL);
@@ -1222,6 +1224,7 @@ THD::THD(bool enable_plugins)
   protocol_text.set_client_capabilities(0); // minimalistic client
 
 //cgmin
+if (pio3_on)
 	pio3_protocol_init();
 
 
@@ -1812,7 +1815,8 @@ void THD::release_resources()
     get_protocol_classic()->end_net();
 
 //cgmin
-end_net_pio();
+if (pio3_on)
+	end_net_pio();
   }
 #endif
 
@@ -2728,18 +2732,21 @@ printf("send_data s\n");
   }
 
   thd->inc_sent_row_count(1);
+	bool rv = protocol->end_row();
 printf("send_data f\n");
-  DBUG_RETURN(protocol->end_row());
+DBUG_RETURN(rv);
+//  DBUG_RETURN(protocol->end_row());
 
 }
 
 //cgmin
-
+/*
 bool Query_result::send_data_pio(List<Item> &items)
 {
 return send_data(items);
 }
-bool Query_result_send::send_data_pio(List<Item> &items)
+*/
+bool Query_result::send_data_pio(List<Item> &items)
 {
 printf("send_data_pio s\n");
   if (unit->offset_limit_cnt)
@@ -2770,16 +2777,44 @@ for (i=0;i<MAX_PIO;++i)
 printf("sdp i %d\n",i);
 pthread_mutex_lock(&thd->pio3_mutex[i]);
 thd->pio3_run[i] = true;
-thd->pio3_items[i]=items; // problem
+//thd->pio3_items[i]=items; // problem
+
+//thd->pio3_items[i].
+List_iterator<Item> it(items);
+Item* item;
+
+//Item_null *nil = new Item_null();
+//thd->pio3_items[i].push_back(nil);
+//item = it++;
+//thd->pio3_items[i].push_back(item->clone_item());
+printf("l0 ");
+while((item= it++))
+{
+	thd->pio3_items[i].push_back(item->clone_item());
+//	thd->pio3_items[i].push_back(item);
+printf("i0 ");
+}
+printf("\n");
+List_iterator<Item> it2(thd->pio3_items[i]);
+printf("l1 ");
+while((item= it2++))
+{
+printf("i1 ");
+}
+printf("\n");
+
+
 //thd->pio3_protocol[i] = *(thd->get_protocol());
 //thd->pio3_protocol[i].init(thd);
 //thd->pio3_protocol[i].packet = thd->pio3_packet[i];
 pthread_mutex_unlock(&thd->pio3_mutex[i]);
 pthread_cond_signal(&thd->pio3_cond[i]);
+/*
 while(thd->pio3_run[i])
 {
 usleep(1);
 }
+*/
 printf("send_data_pio f\n");
 return 0;
 }
@@ -2825,6 +2860,7 @@ return NULL;
 protocol->end_row();
 //  DBUG_RETURN(protocol->end_row());
 //pthread_mutex_lock(&thd->pio3_mutex[i]);
+while(items->pop() != 0); // free???
 thd->pio3_run[i] = false;
 pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
 if (thd->pio3_run[i] == false)
@@ -4734,8 +4770,8 @@ printf("send result metadata s %d\n",mc);
     goto err;
 
 
-//if (pio3_on)
-//{
+if (pio3_on)
+{
 int i;
 for (i=0;i<MAX_PIO;i++)
 {
@@ -4748,7 +4784,7 @@ printf("pio meta error\n");
 
 }
 
-//}
+}
 
 #ifdef EMBEDDED_LIBRARY                  // bootstrap file handling
     if(!mysql)

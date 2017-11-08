@@ -5786,6 +5786,9 @@ wait_table_again:
 
 if (pio_t > 0)
 {
+
+//disk part
+
 	printf("cgmin\n");
 //	btr_cur_open_at_rnd_pos(index,BTR_SEARCH_LEAF,btr_pcur_get_btr_cur(pcur),&mtr);	
 //printf("pio test\n");
@@ -5803,6 +5806,8 @@ if (pio_t > 0)
 //	printf("cp\n");
 //	close_pio(&pio_t,pcur_pio,&mtr0);
 	printf("ep\n");
+
+
 
 /*
 // cpu part

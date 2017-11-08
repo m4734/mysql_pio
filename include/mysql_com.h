@@ -342,7 +342,7 @@ typedef struct st_net {
   unsigned int pkt_nr,compress_pkt_nr;
 
 //cgmin
-//unsigned int* pio_pkt_nr;
+unsigned int* pio_pkt_nr;
 
   unsigned int write_timeout, read_timeout, retry_count;
   int fcntl;
@@ -360,7 +360,10 @@ typedef struct st_net {
   /*
     Unused, please remove with the next incompatible ABI change.
   */
+
+//	unsigned int *pio_pkt_nr;
   unsigned char *unused;
+
   unsigned int last_errno;
   unsigned char error; 
   my_bool unused4; /* Please remove with the next incompatible ABI change. */

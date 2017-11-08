@@ -5942,7 +5942,8 @@ err:
   thd->get_protocol_classic()->end_net();
 
 //cgmin
-thd->end_net_pio();
+if (thd->pio3_on)
+	thd->end_net_pio();
 
   thd->release_resources();
   THD_CHECK_SENTRY(thd);
@@ -6193,7 +6194,8 @@ err:
     */
     thd->get_protocol_classic()->end_net();
 //cgmin
-thd->end_net_pio();
+if (thd->pio3_on)
+	thd->end_net_pio();
 
     /*
       to avoid close_temporary_tables() closing temp tables as those
@@ -7474,7 +7476,8 @@ llstr(rli->get_group_master_log_pos(), llbuff));
   thd->get_protocol_classic()->end_net();
 
 //cgmin
-thd->end_net_pio();
+if (thd->pio3_on)
+	thd->end_net_pio();
 
   DBUG_ASSERT(rli->info_thd == thd);
   THD_CHECK_SENTRY(thd);

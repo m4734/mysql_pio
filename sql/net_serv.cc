@@ -104,6 +104,9 @@ my_bool my_net_init(NET *net, Vio* vio)
   net->buff_end=net->buff+net->max_packet;
   net->error=0; net->return_status=0;
   net->pkt_nr=net->compress_pkt_nr=0;
+//cgmin
+net->pio_pkt_nr = &net->pkt_nr;
+
   net->write_pos=net->read_pos = net->buff;
   net->last_error[0]=0;
   net->compress=0; net->reading_or_writing=0;
@@ -306,8 +309,8 @@ printf("my_net_write - no vio\n");
   {
     const ulong z_size = MAX_PACKET_LENGTH;
     int3store(buff, z_size);
-    buff[3]= (uchar) net->pkt_nr++;
-//    buff[3]= (uchar) *(net->pio_pkt_nr)++; // FAA?
+//    buff[3]= (uchar) net->pkt_nr++;
+    buff[3]= (uchar) (*net->pio_pkt_nr)++; // FAA?
 
     if (net_write_buff(net, buff, NET_HEADER_SIZE) ||
         net_write_buff(net, packet, z_size))
@@ -320,8 +323,8 @@ printf("my_net_write - no vio\n");
   }
   /* Write last packet */
   int3store(buff, static_cast<uint>(len));
-  buff[3]= (uchar) net->pkt_nr++;
-//    buff[3]= (uchar) *(net->pio_pkt_nr)++; // FAA?
+//  buff[3]= (uchar) net->pkt_nr++;
+    buff[3]= (uchar) (*net->pio_pkt_nr)++; // FAA?
 
   if (net_write_buff(net, buff, NET_HEADER_SIZE))
   {
@@ -388,7 +391,8 @@ printf("net_write_command\n");
     do
     {
       int3store(buff, MAX_PACKET_LENGTH);
-      buff[3]= (uchar) net->pkt_nr++;
+       buff[3]= (uchar) (*net->pio_pkt_nr)++;
+//     buff[3]= (uchar) net->pkt_nr++;
       if (net_write_buff(net, buff, header_size) ||
           net_write_buff(net, header, head_len) ||
           net_write_buff(net, packet, len))
@@ -405,7 +409,8 @@ printf("net_write_command\n");
     len=length;         /* Data left to be written */
   }
   int3store(buff, static_cast<uint>(length));
-  buff[3]= (uchar) net->pkt_nr++;
+   buff[3]= (uchar) (*net->pio_pkt_nr)++;
+// buff[3]= (uchar) net->pkt_nr++;
   rc= MY_TEST(net_write_buff(net, buff, header_size) ||
               (head_len && net_write_buff(net, header, head_len)) ||
               net_write_buff(net, packet, len) || net_flush(net));

@@ -7180,7 +7180,8 @@ restart_cluster_failure:
   // Release the thd->net created without vio
   thd->get_protocol_classic()->end_net();
 //cgmin
-thd->end_net_pio();
+if (thd->pio3_on)
+	thd->end_net_pio();
 
   thd->release_resources();
   thd_manager->remove_thd(thd);

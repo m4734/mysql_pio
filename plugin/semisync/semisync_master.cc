@@ -1257,6 +1257,8 @@ int ReplSemiSyncMaster::readSlaveReply(NET *net, uint32 server_id,
   }
 
   net_clear(net, 0);
+//cgmin
+//(*net->pio_pkt_nr)++;
   net->pkt_nr++;
   result = 0;
   rpl_semi_sync_master_net_wait_num++;

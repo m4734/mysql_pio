@@ -204,7 +204,8 @@ Applier_module::clean_applier_thread_context()
   applier_thd->get_protocol_classic()->end_net();
 
 //cgmin
-applier_thd->end_net_pio();
+if (applier_thd->pio3_on)
+	applier_thd->end_net_pio();
 
   applier_thd->release_resources();
   THD_CHECK_SENTRY(applier_thd);

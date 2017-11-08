@@ -158,7 +158,8 @@ deinit_event_thread(THD *thd)
   thd->proc_info= "Clearing";
   thd->get_protocol_classic()->end_net();
 //cgmin
-thd->end_net_pio();
+if (thd->pio3_on)
+	thd->end_net_pio();
 
   DBUG_PRINT("exit", ("Event thread finishing"));
 
@@ -249,7 +250,8 @@ extern "C" void *event_scheduler_thread(void *arg)
     thd->proc_info= "Clearing";
     thd->get_protocol_classic()->end_net();
 //cgmin
-thd->end_net_pio();
+if (thd->pio3_on)
+	thd->end_net_pio();
     delete thd;
   }
 
@@ -476,7 +478,8 @@ Event_scheduler::start(int *err_no)
     new_thd->get_protocol_classic()->end_net();
 
 //cgmin
-new_thd->end_net_pio();
+if (new_thd->pio3_on)
+	new_thd->end_net_pio();
 
     state= INITIALIZED;
     scheduler_thd= NULL;
@@ -609,7 +612,8 @@ Event_scheduler::execute_top(Event_queue_element_for_exec *event_name)
     new_thd->proc_info= "Clearing";
     new_thd->get_protocol_classic()->end_net();
 //cgmin
-new_thd->end_net_pio();
+if (new_thd->pio3_on)
+	new_thd->end_net_pio();
 
     goto error;
   }

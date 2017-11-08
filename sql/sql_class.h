@@ -2141,7 +2141,6 @@ private:
 public:
 
 //cgmin
-int mc;
 
 bool pio3_on;
 NET pio3_net[MAX_PIO];

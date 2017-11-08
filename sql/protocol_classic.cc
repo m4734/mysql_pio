@@ -726,8 +726,8 @@ bool Protocol_classic::init_net(Vio *vio)
 {
 printf("classic init_net\n");
   bool rv = my_net_init(&m_thd->net, vio);
-if (m_thd->pio3_on)
-	m_thd->pio3_init_net(vio);
+//if (m_thd->pio3_on)
+//	m_thd->pio3_init_net(vio);
 return rv;
 }
 

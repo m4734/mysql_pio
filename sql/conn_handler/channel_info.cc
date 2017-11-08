@@ -37,6 +37,8 @@ THD* Channel_info::create_thd()
   }
 
   thd->get_protocol_classic()->init_net(vio_tmp);
+if (thd->pio3_on)
+	thd->pio3_init_net(vio_tmp);//???
 
   return thd;
 }

@@ -4756,8 +4756,7 @@ void THD::parse_error_at(const YYLTYPE &location, const char *s)
 bool THD::send_result_metadata(List<Item> *list, uint flags)
 {
 bool rv = false;
- mc++;
-printf("send result metadata s %d\n",mc);
+printf("send result metadata s\n");
 
  DBUG_ENTER("send_result_metadata");
   List_iterator_fast<Item> it(*list);
@@ -4804,7 +4803,7 @@ printf("pio meta error\n");
       item->send(m_protocol, &tmp);
     if (m_protocol->end_row())
 {
-printf("send result metadata ee %d\n",mc);
+printf("send result metadata ee\n");
 
       DBUG_RETURN(true);
 }
@@ -4817,11 +4816,11 @@ printf("send result metadata ee %d\n",mc);
   }
 
   rv = m_protocol->end_result_metadata();
-printf("send result metadata e %d\n",mc);
+printf("send result metadata e\n");
 DBUG_RETURN(rv);
 
   err:
-printf("send result metadata eee %d\n",mc);
+printf("send result metadata eee\n");
   my_error(ER_OUT_OF_RESOURCES, MYF(0));        /* purecov: inspected */
   DBUG_RETURN(1);                               /* purecov: inspected */
 }

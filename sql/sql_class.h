@@ -192,7 +192,38 @@ struct pio3_data_t
 	THD* thd;
 	int pio_t;
 };
+/*
+union item_value_t
+{
+	String *res;
+//	char buffer[MAX_FIELD_WIDTH];
+	longlong lnr;
+	float fnr;
+	double dnr;
+	my_decimal decimal;
+//	longlong ptr0;
+	MYSQL_TIME tm;
+};
+struct pio3_item_t
+{
+	enum_field_types field_types;
+	item_value_t item_value; 
+	uint8 decimals;
+	my_bool unsigned_flag;
+	my_bool null_value;
+	char buffer[MAX_FIELD_WIDTH];
+	String* str;
 
+	bool zerofill;
+	const int8 dec;
+	uint precision;
+
+	int pft; //protocol function type
+// 0 null / 1 string / 2 tiny / 3 short / 4 long / 5 longlong / 6 float / 7 double / 8 date / 9 time
+// 10 string2 / 11 decimal / 12 float2 / 13 double2 / 14 date2
+
+};
+*/
 void *pio3_thd_pro(void* data);
 
 
@@ -2142,7 +2173,7 @@ public:
 
 //cgmin
 
-bool pio3_on;
+//bool pio3_on;
 NET pio3_net[MAX_PIO];
 String pio3_packet[MAX_PIO];
 String pio3_convert_buffer[MAX_PIO];
@@ -2152,7 +2183,9 @@ pthread_t pio3_t[MAX_PIO];
 
 //protocol???
 //Protocol_binary pio3_procotol[MAX_PIO];
-List<Item> pio3_items[MAX_PIO];
+//List<Item> pio3_items[MAX_PIO];
+
+//List<pio3_item_t> pio3_items[MAX_PIO];
 
 //thread
 pthread_mutex_t pio3_mutex[MAX_PIO];
@@ -4720,6 +4753,11 @@ private:
     aggregates THD.
   */
   bool is_a_srv_session_thd;
+
+
+//cgmin
+public:
+	bool pio3_on;
 };
 
 /**

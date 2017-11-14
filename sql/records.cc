@@ -528,7 +528,7 @@ int rr_sequential(READ_RECORD *info)
 int rr_sequential_pio(READ_RECORD *info)
 {
   int tmp;
-  while ((tmp=info->table->file->ha_rnd_next_pio(info->record,0)))//info->pio_t)))
+  while ((tmp=info->table->file->ha_rnd_next_pio(info->record,8)))//info->pio_t)))
   {
     /*
       ha_rnd_next can return RECORD_DELETED for MyISAM when one thread is

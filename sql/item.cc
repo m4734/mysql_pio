@@ -7472,14 +7472,29 @@ public:
   /* purecov: end */
 };
 
-
+/*
+Item* Item::clone_item()//cgmin???
+{
+	printf("const??? %d\n",(int)field_type());
+	Item* item(this);
+	return item;
+}        
+*/
 /**
   Pack data in buffer for sending.
 */
 
 bool Item_null::send(Protocol *protocol, String *packet)
 {
+printf("ins\n");
   return protocol->store_null();
+}
+
+
+bool Item_null::pio_save(Protocol *protocol, String *packet)
+{
+	pio3_item.pft = 0;
+	return false; // ?
 }
 
 /**
@@ -7488,9 +7503,10 @@ bool Item_null::send(Protocol *protocol, String *packet)
 
 bool Item::send(Protocol *protocol, String *buffer)
 {
+printf("is\n");
   bool result= false;                       // Will be set if null_value == 0
   enum_field_types f_type;
-
+printf("ft %d\n",(int)field_type());
   switch ((f_type=field_type())) {
   default:
   case MYSQL_TYPE_NULL:
@@ -7592,6 +7608,151 @@ bool Item::send(Protocol *protocol, String *buffer)
   return result;
 }
 
+bool Item::pio_save(Protocol *protocol, String *buffer)
+{
+  bool result= false;                       // Will be set if null_value == 0
+  enum_field_types f_type;
+  switch ((f_type=field_type())) {
+  default:
+  case MYSQL_TYPE_NULL:
+  case MYSQL_TYPE_DECIMAL:
+  case MYSQL_TYPE_ENUM:
+  case MYSQL_TYPE_SET:
+  case MYSQL_TYPE_TINY_BLOB:
+  case MYSQL_TYPE_MEDIUM_BLOB:
+  case MYSQL_TYPE_LONG_BLOB:
+  case MYSQL_TYPE_BLOB:
+  case MYSQL_TYPE_GEOMETRY:
+  case MYSQL_TYPE_STRING:
+  case MYSQL_TYPE_VAR_STRING:
+  case MYSQL_TYPE_VARCHAR:
+  case MYSQL_TYPE_BIT:
+  case MYSQL_TYPE_NEWDECIMAL:
+  case MYSQL_TYPE_JSON:
+  {
+//    String *res;
+//    if ((res=val_str(buffer)))
+	pio3_item.item_value.res = val_str(pio3_item.str);
+	if (pio3_item.item_value.res)
+		pio3_item.pft = 1;
+//      result= protocol->store(res->ptr(),res->length(),res->charset());
+    else
+    {
+      DBUG_ASSERT(null_value);
+    }
+    break;
+  }
+  case MYSQL_TYPE_TINY:
+  {
+//    longlong nr;
+//    nr= val_int();
+	pio3_item.item_value.lnr = val_int();
+    if (!null_value)
+//      result= protocol->store_tiny(nr);
+//	result = protocol->store_tiny(pio3_item.item_value.nr);
+	pio3_item.pft = 2;
+    break;
+  }
+  case MYSQL_TYPE_SHORT:
+  case MYSQL_TYPE_YEAR:
+  {
+//    longlong nr;
+//    nr= val_int();
+	pio3_item.item_value.lnr = val_int();
+    if (!null_value)
+//      result= protocol->store_short(nr);
+//	result = protocol->store_short(pio3_item.item_value.nr);
+	pio3_item.pft = 3;
+    break;
+  }
+  case MYSQL_TYPE_INT24:
+  case MYSQL_TYPE_LONG:
+  {
+//    longlong nr;
+//    nr= val_int();
+	pio3_item.item_value.lnr = val_int();
+    if (!null_value)
+//      result= protocol->store_long(nr);
+//	result = protocol->store_long(pio3_item.item_value.nr);
+	pio3_item.pft = 4;
+    break;
+  }
+  case MYSQL_TYPE_LONGLONG:
+  {
+//    longlong nr;
+//    nr= val_int();
+	pio3_item.item_value.lnr = val_int();
+    if (!null_value)
+{
+//      result= protocol->store_longlong(nr, unsigned_flag);
+//	result = protocol->store_longlong(pio3_item.item_value.nr,unsigned_flag);
+	pio3_item.pft = 5;
+	pio3_item.unsigned_flag = unsigned_flag;
+}
+    break;
+  }
+  case MYSQL_TYPE_FLOAT:
+  {
+//    float nr;
+//    nr= (float) val_real();
+	pio3_item.item_value.fnr = (float) val_real();
+    if (!null_value)
+{
+//      result= protocol->store(nr, decimals, buffer);
+//	result = protocol->store(pio3_item.item_value.fnr,decimals,buffer);
+	pio3_item.pft = 6;
+	pio3_item.decimals = decimals;
+}
+    break;
+  }
+  case MYSQL_TYPE_DOUBLE:
+  {
+//    double nr= val_real();
+	pio3_item.item_value.dnr = val_real();
+    if (!null_value)
+{
+//      result= protocol->store(nr, decimals, buffer);
+//	result = protocol->store(pio3_item.item_value.dnr,decimals,buffer);
+	pio3_item.pft = 7;
+	pio3_item.decimals = decimals;
+}
+    break;
+  }
+  case MYSQL_TYPE_DATETIME:
+  case MYSQL_TYPE_DATE:
+  case MYSQL_TYPE_TIMESTAMP:
+  {
+    MYSQL_TIME tm;
+    get_date(&tm, TIME_FUZZY_DATE);
+    if (!null_value)
+{
+	pio3_item.pft = 8;
+	pio3_item.item_value.tm = tm;
+	pio3_item.decimals = decimals;
+//      result= (f_type == MYSQL_TYPE_DATE) ? protocol->store_date(&tm) :
+  //                                          protocol->store(&tm, decimals);
+}
+    break;
+  }
+  case MYSQL_TYPE_TIME:
+  {
+    MYSQL_TIME tm;
+    get_time(&tm);
+    if (!null_value)
+{
+	pio3_item.pft = 9;
+	pio3_item.item_value.tm = tm;
+	pio3_item.decimals = decimals;
+}
+//      result= protocol->store_time(&tm, decimals);
+    break;
+  }
+  }
+  if (null_value)
+	pio3_item.pft = 0;
+//    result= protocol->store_null();
+  return result;
+}
 
 /**
   Evaluate item, possibly using the supplied buffer
@@ -7784,9 +7945,19 @@ Item* Item_field::item_field_by_name_transformer(uchar *arg)
 
 bool Item_field::send(Protocol *protocol, String *buffer)
 {
+printf("ifs\n");
   return protocol->store(result_field);
 }
 
+bool Item_field::pio_save(Protocol *protocol, String *buffer)
+{
+	result_field->pio3_save = true;
+	result_field->pio3_item = &pio3_item;
+bool rv = protocol->store(result_field);
+result_field->pio3_save = false;
+return rv;
+//  return protocol->store(result_field);
+}
 
 void Item_field::update_null_value() 
 { 
@@ -8368,11 +8539,26 @@ void Item_ref::print(String *str, enum_query_type query_type)
 
 bool Item_ref::send(Protocol *prot, String *tmp)
 {
+printf ("irs\n");
   if (result_field)
     return prot->store(result_field);
   return (*ref)->send(prot, tmp);
 }
 
+bool Item_ref::pio_save(Protocol *prot, String *tmp)
+{
+  if (result_field)
+{
+bool rv;
+	result_field->pio3_save = true;
+	result_field->pio3_item = &pio3_item;
+rv = prot->store(result_field);
+result_field->pio3_save = false;
+return rv;
+//    return prot->store(result_field);
+}
+  return (*ref)->pio_save(prot, tmp);
+}
 
 double Item_ref::val_result()
 {
@@ -8893,11 +9079,25 @@ bool Item_direct_view_ref::is_null()
 
 bool Item_direct_view_ref::send(Protocol *prot, String *tmp)
 {
+printf ("idvrs\n");
   if (has_null_row())
     return prot->store_null();
   return super::send(prot, tmp);
 }
 
+bool Item_direct_view_ref::pio_save(Protocol *prot, String *tmp)
+{
+  if (has_null_row())
+{
+//    return prot->store_null();
+	pio3_item.pft = 0;
+	return false;
+}
+
+//return fal
+//  return super::send(prot, tmp);
+	return super::pio_save(prot,tmp);
+}
 
 type_conversion_status
 Item_direct_view_ref::save_in_field_inner(Field *field, bool no_conversions)

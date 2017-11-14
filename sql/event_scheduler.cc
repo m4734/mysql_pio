@@ -193,6 +193,8 @@ pre_init_event_thread(THD* thd)
   thd->security_context()->set_host_or_ip_ptr((char *) my_localhost,
                                               strlen(my_localhost));
   thd->get_protocol_classic()->init_net(NULL);
+if (thd->pio3_on)
+	thd->pio3_init_net(NULL);
   thd->security_context()->set_user_ptr(C_STRING_WITH_LEN("event_scheduler"));
   thd->get_protocol_classic()->get_net()->read_timeout= slave_net_timeout;
   thd->slave_thread= 0;

@@ -249,7 +249,38 @@ DBUG_ASSERT(!table || (!table->read_set || \
 #define ASSERT_COLUMN_MARKED_FOR_WRITE \
 DBUG_ASSERT(!table || (!table->write_set || \
                        bitmap_is_set(table->write_set, field_index)))
+//cgmin
+union item_value_t
+{
+	String *res;
+//	char buffer[MAX_FIELD_WIDTH];
+	longlong lnr;
+	float fnr;
+	double dnr;
+//	my_decimal decimal;
+//	longlong ptr0;
+	MYSQL_TIME tm;
+};
+struct pio3_item_t
+{
+	enum_field_types field_types;
+	item_value_t item_value; 
+	uint8 decimals;
+	my_bool unsigned_flag;
+	my_bool null_value;
+	char buffer[MAX_FIELD_WIDTH];
+	String* str;
 
+	my_decimal decimal;
+	bool zerofill;
+	int8 dec;
+	uint precision;
+
+	int pft; //protocol function type
+// 0 null / 1 string / 2 tiny / 3 short / 4 long / 5 longlong / 6 float / 7 double / 8 date / 9 time
+// 10 string2 / 11 decimal / 12 float2 / 13 double2 / 14 date2
+
+};
 
 /**
   Tests if field type is temporal, i.e. represents
@@ -597,6 +628,11 @@ public:
   { TRASH(ptr_arg, size); }
 
   uchar		*ptr;			// Position to field in record
+
+//cgmin
+	pio3_item_t* pio3_item;
+	bool pio3_save;
+
 
 private:
   /**

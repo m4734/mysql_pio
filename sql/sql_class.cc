@@ -1121,7 +1121,7 @@ THD::THD(bool enable_plugins)
    duplicate_slave_id(false),
    is_a_srv_session_thd(false)
 ,
-pio3_on(false) //cgmin
+pio3_on(true) //cgmin
 {
   main_lex.reset();
   set_psi(NULL);
@@ -2724,8 +2724,19 @@ printf("send_data s\n");
   */
   ha_release_temporary_latches(thd);
 
+List<Item> items2;
+List_iterator_fast<Item> it(items);
+Item* item;
+
+while((item = it++))
+{
+	items2.push_back(Item_copy::create(item));
+printf("1");
+}
+
   protocol->start_row();
   if (thd->send_result_set_row(&items))
+//if (thd->send_result_set_row(&items2))
   {
     protocol->abort_row();
     DBUG_RETURN(TRUE);
@@ -2733,6 +2744,13 @@ printf("send_data s\n");
 
   thd->inc_sent_row_count(1);
 	bool rv = protocol->end_row();
+/*
+while((item = items2.pop())!=0)
+{
+	item->delete_self();
+printf("2");
+}
+*/
 printf("send_data f\n");
 DBUG_RETURN(rv);
 //  DBUG_RETURN(protocol->end_row());
@@ -2778,43 +2796,102 @@ printf("sdp i %d\n",i);
 pthread_mutex_lock(&thd->pio3_mutex[i]);
 thd->pio3_run[i] = true;
 //thd->pio3_items[i]=items; // problem
-
+/*
 //thd->pio3_items[i].
 List_iterator<Item> it(items);
 Item* item;
 
-//Item_null *nil = new Item_null();
-//thd->pio3_items[i].push_back(nil);
-//item = it++;
-//thd->pio3_items[i].push_back(item->clone_item());
 printf("l0 ");
 while((item= it++))
 {
-	thd->pio3_items[i].push_back(item->clone_item());
-//	thd->pio3_items[i].push_back(item);
-printf("i0 ");
+//	thd->pio3_items[i].push_back(item->this_item());
+//	thd->pio3_items[i].push_back(item->clone_item());
+//	thd->pio3_items[i].push_back(Item_copy::create(item));
+
+pio3_item_t item2;
+item2.field_types = item->field_type();
+item2.decimals = item->decimals;
+item2.null_value = item->null_value;
+item2.unsigned_flag = item->unsigned_flag;
+
+switch(item2.field_types)
+{
+  default:
+  case MYSQL_TYPE_NULL:
+  case MYSQL_TYPE_DECIMAL:
+  case MYSQL_TYPE_ENUM:
+  case MYSQL_TYPE_SET:
+  case MYSQL_TYPE_TINY_BLOB:
+  case MYSQL_TYPE_MEDIUM_BLOB:
+  case MYSQL_TYPE_LONG_BLOB:
+  case MYSQL_TYPE_BLOB:
+  case MYSQL_TYPE_GEOMETRY:
+  case MYSQL_TYPE_STRING:
+  case MYSQL_TYPE_VAR_STRING:
+  case MYSQL_TYPE_VARCHAR:
+  case MYSQL_TYPE_BIT:
+  case MYSQL_TYPE_NEWDECIMAL:
+  case MYSQL_TYPE_JSON:
+  {
+    if ((item2.item_value.res=item->val_str(item2.buffer)) == 0)
+      DBUG_ASSERT(null_value);
+    break;
+  }
+  case MYSQL_TYPE_TINY:
+  case MYSQL_TYPE_SHORT:
+  case MYSQL_TYPE_YEAR:
+  case MYSQL_TYPE_INT24:
+  case MYSQL_TYPE_LONG:
+  case MYSQL_TYPE_LONGLONG:
+  {
+    item2.item_value.lnr= item->val_int();
+    break;
+  }
+ case MYSQL_TYPE_FLOAT:
+  {
+    item2.item_value.fnr= (float) item->val_real();
+    break;
+  }
+  case MYSQL_TYPE_DOUBLE:
+  {
+    item2.item_value.dnr= item->val_real();
+    break;
+  }
+  case MYSQL_TYPE_DATETIME:
+  case MYSQL_TYPE_DATE:
+  case MYSQL_TYPE_TIMESTAMP:
+  case MYSQL_TYPE_TIME:
+    break;
 }
-printf("\n");
+
+
+	thd->pio3_items[i].push_back(item2);
+
+//printf("i0 %d ",(int)item->field_type());
+}
+//printf("\n");
+*/
+/*
 List_iterator<Item> it2(thd->pio3_items[i]);
 printf("l1 ");
 while((item= it2++))
 {
-printf("i1 ");
+printf("i1 %d ",(int)item->field_type());
 }
 printf("\n");
-
+*/
 
 //thd->pio3_protocol[i] = *(thd->get_protocol());
 //thd->pio3_protocol[i].init(thd);
 //thd->pio3_protocol[i].packet = thd->pio3_packet[i];
 pthread_mutex_unlock(&thd->pio3_mutex[i]);
 pthread_cond_signal(&thd->pio3_cond[i]);
-/*
+
 while(thd->pio3_run[i])
 {
 usleep(1);
 }
-*/
+
 printf("send_data_pio f\n");
 return 0;
 }
@@ -2826,7 +2903,7 @@ void *pio3_thd_pro(void* data)
 
 THD* thd = ((pio3_data_t*)data)->thd;
 int i = ((pio3_data_t*)data)->pio_t;
-List<Item>* items = &thd->pio3_items[i];
+//List<pio3_item_t>* items = &thd->pio3_items[i];
 
 //  Protocol *protocol= thd->pio_get_protocol(i);
 Protocol *protocol = &thd->pio3_protocol[i];
@@ -2845,8 +2922,9 @@ while(1)
 {
 printf("ptp %d\n",i);
 //  protocol->start_row_pio();
+
 protocol->start_row();
-  if (thd->send_result_set_row_pio(items,i)) //&
+  if (false)//thd->send_result_set_row_pio(items,i)) //&
   {
 printf("abort!\n");
     protocol->abort_row();
@@ -2858,9 +2936,18 @@ return NULL;
 //???
 //protocol->end_row_pio();
 protocol->end_row();
+
 //  DBUG_RETURN(protocol->end_row());
 //pthread_mutex_lock(&thd->pio3_mutex[i]);
-while(items->pop() != 0); // free???
+/*
+Item* item;
+while((item = items->pop()) != 0) // free???
+{
+	item->delete_self();
+	printf("p&d ");
+}
+printf("\n");
+*/
 thd->pio3_run[i] = false;
 pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
 if (thd->pio3_run[i] == false)

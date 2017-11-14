@@ -4206,6 +4206,8 @@ static int init_slave_thread(THD* thd, SLAVE_THD_TYPE thd_type)
     SYSTEM_THREAD_SLAVE_SQL : SYSTEM_THREAD_SLAVE_IO;
   thd->security_context()->skip_grants();
   thd->get_protocol_classic()->init_net(0);
+if (thd->pio3_on)
+	thd->pio3_init_net(0);
   thd->slave_thread = 1;
   thd->enable_slow_log= opt_log_slow_slave_statements;
   set_slave_thread_options(thd);

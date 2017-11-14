@@ -9184,7 +9184,7 @@ ha_innobase::rnd_next_pio(uchar* buf,int t)
 
 	ha_statistic_increment(&SSV::ha_read_rnd_next_count);
 
-//	if (m_start_of_scan) {
+	if (m_start_of_scan) {
 		error = index_first(buf);
 
 		if (error == HA_ERR_KEY_NOT_FOUND) {
@@ -9192,10 +9192,10 @@ ha_innobase::rnd_next_pio(uchar* buf,int t)
 DBUG_RETURN(HA_ERR_END_OF_FILE);
 		}
 
-//		m_start_of_scan = false;
-//	} else {
+		m_start_of_scan = false;
+	} else {
 		error = general_fetch(buf, ROW_SEL_NEXT, 0);
-//	}
+	}
 
 	DBUG_RETURN(error);
 

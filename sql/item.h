@@ -765,6 +765,9 @@ protected:
   }
 
 public:
+
+//cgmin
+
   static void *operator new(size_t size) throw ()
   { return sql_alloc(size); }
   static void *operator new(size_t size, MEM_ROOT *mem_root) throw ()
@@ -1058,6 +1061,14 @@ public:
   { return save_in_field(field, true); }
 
   virtual bool send(Protocol *protocol, String *str);
+
+//cgmin
+bool pio_save(Protocol *protocol, String *str); // protocol??
+//virtual bool pio_send(Protocol *protocol, String *str); // str??
+pio3_item_t pio3_item;
+
+
+
   bool evaluate(THD *thd, String *str);
   virtual bool eq(const Item *, bool binary_cmp) const;
   virtual Item_result result_type() const { return REAL_RESULT; }
@@ -1626,6 +1637,14 @@ public:
   virtual bool basic_const_item() const { return 0; }
   /* cloning of constant items (0 if it is not const) */
   virtual Item *clone_item() { return 0; }
+/*
+virtual Item *clone_item() // cgmin???
+{
+	printf("const??\n");
+	return new Item_null(NULL);
+}
+*/
+//virtual Item *clone_item();
   virtual cond_result eq_cmp_result() const { return COND_OK; }
   inline uint float_length(uint decimals_par) const
   { return decimals != NOT_FIXED_DEC ? (DBL_DIG+2+decimals_par) : DBL_DIG+8;}
@@ -2819,6 +2838,10 @@ protected:
   void set_field(Field *field);
   type_conversion_status save_in_field_inner(Field *field, bool no_conversions);
 public:
+
+//cgmin
+bool pio_save(Protocol *protocol, String *str); // protocol??
+
   /**
     Table containing this resolved field. This is required e.g for calculation
     of table map. Notice that for the following types of "tables",
@@ -3042,6 +3065,11 @@ class Item_null :public Item_basic_constant
 protected:
   type_conversion_status save_in_field_inner(Field *field, bool no_conversions);
 public:
+
+//cgmin
+bool pio_save(Protocol *protocol, String *str); // protocol??
+
+
   Item_null()
   {
     init();
@@ -4022,6 +4050,12 @@ protected:
   void set_properties();
   type_conversion_status save_in_field_inner(Field *field, bool no_conversions);
 public:
+
+
+//cgmin
+bool pio_save(Protocol *protocol, String *str); // protocol??
+
+
   enum Ref_Type { REF, DIRECT_REF, VIEW_REF, OUTER_REF, AGGREGATE_REF };
   Field *result_field;			 /* Save result here */
   Item **ref;
@@ -4271,6 +4305,11 @@ class Item_direct_view_ref :public Item_direct_ref
   typedef Item_direct_ref super;
 
 public:
+
+//cgmin
+bool pio_save(Protocol *protocol, String *str); // protocol??
+
+
   Item_direct_view_ref(Name_resolution_context *context_arg,
                        Item **item,
                        const char *alias_name_arg,

@@ -87,6 +87,8 @@ handler_create_thd(
 	}
 
 	thd->get_protocol_classic()->init_net((st_vio *) 0);
+if (thd->pio3_on)
+	thd->pio3_init_net((st_vio *) 0);
 	thd->set_new_thread_id();
 	thd->thread_stack = reinterpret_cast<char*>(&thd);
 	thd->store_globals();

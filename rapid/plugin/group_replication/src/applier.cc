@@ -183,6 +183,8 @@ Applier_module::set_applier_thread_context()
   thd->store_globals();
 
   thd->get_protocol_classic()->init_net(0);
+if(thd->pio3_on)
+	thd->pio3_init_net(0);
   thd->slave_thread= true;
   //TODO: See of the creation of a new type is desirable.
   thd->system_thread= SYSTEM_THREAD_SLAVE_IO;

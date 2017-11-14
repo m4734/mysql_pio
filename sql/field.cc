@@ -1709,6 +1709,41 @@ void Field::copy_data(my_ptrdiff_t src_record_offset)
 
 bool Field::send_text(Protocol *protocol)
 {
+//cgmin
+if (pio3_save)
+{
+  if (is_null())
+{
+pio3_item->pft = 0;
+return false;
+//    return protocol->store_null();
+}
+  char buff[MAX_FIELD_WIDTH];
+  String str(buff, sizeof(buff), &my_charset_bin);
+/*
+#ifndef DBUG_OFF
+  my_bitmap_map *old_map= 0;
+  if (table->file)
+    old_map= dbug_tmp_use_all_columns(table, table->read_set);
+#endif
+*/
+//  String *res= val_str(&str);
+/*
+#ifndef DBUG_OFF
+  if (old_map)
+    dbug_tmp_restore_column_map(table->read_set, old_map);
+#endif
+*/
+//  return res ? protocol->store(res) : protocol->store_null();
+
+pio3_item->item_value.res = val_str(pio3_item->str);
+if (pio3_item->item_value.res)
+	pio3_item->pft = 10;
+else
+	pio3_item->pft = 0;
+return false;
+
+}
   if (is_null())
     return protocol->store_null();
   char buff[MAX_FIELD_WIDTH];
@@ -1731,6 +1766,22 @@ bool Field::send_text(Protocol *protocol)
 
 bool Field::send_binary(Protocol *protocol)
 {
+
+if (pio3_save)
+{
+	if (is_null())
+	{
+		pio3_item->pft = 0;
+		return false;
+	}
+	pio3_item->item_value.res = val_str(pio3_item->str);
+	if (pio3_item->item_value.res)
+		pio3_item->pft = 10;
+	else
+		pio3_item->pft = 0;
+	return false;
+}
+
   char buff[MAX_FIELD_WIDTH];
   String tmp(buff,sizeof(buff),charset());
   if (is_null())
@@ -3366,6 +3417,22 @@ Field_new_decimal::unpack(uchar* to,
 bool Field_new_decimal::send_binary(Protocol *protocol)
 {
   my_decimal dec_value;
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 11;
+		pio3_item->decimal = *val_decimal(&dec_value);
+		pio3_item->zerofill = zerofill;
+		pio3_item->dec = dec;
+		pio3_item->precision = precision;
+	}
+	return false;
+}
+
+
   if (is_null())
     return protocol->store_null();
   return protocol->store_decimal(val_decimal(&dec_value),
@@ -3522,6 +3589,17 @@ String *Field_tiny::val_str(String *val_buffer,
 
 bool Field_tiny::send_binary(Protocol *protocol)
 {
+	if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 2;
+		pio3_item->item_value.lnr = (longlong) unsigned_flag? (uint8) ptr[0]: (int8) ptr[0];
+	}
+	return false;
+}
   if (is_null())
     return protocol->store_null();
   return protocol->store_tiny((longlong) unsigned_flag? (uint8) ptr[0]:
@@ -3746,6 +3824,17 @@ String *Field_short::val_str(String *val_buffer,
 
 bool Field_short::send_binary(Protocol *protocol)
 {
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 3;
+		pio3_item->item_value.lnr = Field_short::val_int();
+	}
+	return false;
+}
   if (is_null())
     return protocol->store_null();
   return protocol->store_short(Field_short::val_int());
@@ -3959,6 +4048,19 @@ String *Field_medium::val_str(String *val_buffer,
 bool Field_medium::send_binary(Protocol *protocol)
 {
   ASSERT_COLUMN_MARKED_FOR_READ;
+
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 4;
+		pio3_item->item_value.lnr = Field_medium::val_int();
+	}
+	return false;
+}
+
   if (is_null())
     return protocol->store_null();
   return protocol->store_long(Field_medium::val_int());
@@ -4204,6 +4306,19 @@ String *Field_long::val_str(String *val_buffer,
 bool Field_long::send_binary(Protocol *protocol)
 {
   ASSERT_COLUMN_MARKED_FOR_READ;
+
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 4;
+		pio3_item->item_value.lnr = Field_long::val_int();
+	}
+	return false;
+}
+
   if (is_null())
     return protocol->store_null();
   return protocol->store_long(Field_long::val_int());
@@ -4452,6 +4567,20 @@ String *Field_longlong::val_str(String *val_buffer,
 bool Field_longlong::send_binary(Protocol *protocol)
 {
   ASSERT_COLUMN_MARKED_FOR_READ;
+\
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 5;
+		pio3_item->item_value.lnr = Field_longlong::val_int();
+		pio3_item->unsigned_flag = unsigned_flag;
+	}
+	return false;
+}
+
   if (is_null())
     return protocol->store_null();
   return protocol->store_longlong(Field_longlong::val_int(), unsigned_flag);
@@ -4746,6 +4875,19 @@ void Field_float::make_sort_key(uchar *to, size_t length)
 bool Field_float::send_binary(Protocol *protocol)
 {
   ASSERT_COLUMN_MARKED_FOR_READ;
+if (pio3_save)
+  {
+	  if (is_null())
+		  pio3_item->pft = 0;
+	  else
+	  {
+		  pio3_item->pft = 12;
+		  pio3_item->item_value.fnr = Field_float::val_real();
+		pio3_item->dec = dec;
+	  }
+	  return false;
+  }
+  
   if (is_null())
     return protocol->store_null();
   return protocol->store((float) Field_float::val_real(), dec, (String*) 0);
@@ -5011,6 +5153,20 @@ String *Field_double::val_str(String *val_buffer,
 
 bool Field_double::send_binary(Protocol *protocol)
 {
+
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 13;
+		pio3_item->item_value.dnr = Field_double::val_int();
+		pio3_item->dec = dec;
+	}
+	return false;
+}
+
   if (is_null())
     return protocol->store_null();
   String buf;
@@ -5502,6 +5658,26 @@ Field_temporal_with_date::convert_str_to_TIME(const char *str, size_t len,
 bool Field_temporal_with_date::send_binary(Protocol *protocol)
 {
   MYSQL_TIME ltime;
+
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+	  if (get_date_internal(&ltime))
+  {
+    // Only MYSQL_TYPE_TIMESTAMP can return an error in get_date_internal()
+    DBUG_ASSERT(type() == MYSQL_TYPE_TIMESTAMP);
+    set_zero_time(&ltime, MYSQL_TIMESTAMP_DATETIME);
+  }
+ 	pio3_item->pft = 9;
+		pio3_item->item_value.tm = ltime;
+		pio3_item->decimals = 0;
+	}
+	return false;
+}
+
   if (is_null())
     return protocol->store_null();
   if (get_date_internal(&ltime))
@@ -6140,6 +6316,27 @@ longlong Field_time_common::val_date_temporal()
 bool Field_time_common::send_binary(Protocol *protocol)
 {
   MYSQL_TIME ltime;
+
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+	  if (get_time(&ltime))
+  {
+    DBUG_ASSERT(0);
+    set_zero_time(&ltime, MYSQL_TIMESTAMP_TIME);
+  }
+  ltime.day= ltime.hour / 24;         // Move hours to days
+  ltime.hour-= ltime.day * 24;
+ 	pio3_item->pft = 9;
+		pio3_item->item_value.tm = ltime;
+		pio3_item->decimals = 0;
+	}
+	return false;
+}
+
   if (is_null())
     return protocol->store_null();
   if (get_time(&ltime))
@@ -6442,6 +6639,18 @@ type_conversion_status Field_year::store(longlong nr, bool unsigned_val)
 bool Field_year::send_binary(Protocol *protocol)
 {
   ASSERT_COLUMN_MARKED_FOR_READ;
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 3;
+		pio3_item->item_value.lnr = Field_year::val_int();
+	}
+	return false;
+}
+
   if (is_null())
     return protocol->store_null();
   ulonglong tmp= Field_year::val_int();
@@ -6546,6 +6755,19 @@ type_conversion_status Field_newdate::store_packed(longlong nr)
 bool Field_newdate::send_binary(Protocol *protocol)
 {
   MYSQL_TIME ltime;
+if (pio3_save)
+{
+	if (is_null())
+		pio3_item->pft = 0;
+	else
+	{
+		pio3_item->pft = 14;
+	  get_date(&ltime, 0);
+	pio3_item->item_value.tm = ltime;
+	}
+	return false;
+}
+
   if (is_null())
     return protocol->store_null();
   get_date(&ltime, 0);

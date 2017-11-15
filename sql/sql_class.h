@@ -2185,7 +2185,7 @@ pthread_t pio3_t[MAX_PIO];
 //Protocol_binary pio3_procotol[MAX_PIO];
 //List<Item> pio3_items[MAX_PIO];
 
-//List<pio3_item_t> pio3_items[MAX_PIO];
+List<pio3_item_t> pio3_item[MAX_PIO];
 
 //thread
 pthread_mutex_t pio3_mutex[MAX_PIO];
@@ -4952,7 +4952,7 @@ public:
 //cgmin
 //	virtual bool send_data_pio(List<Item> &items)=0;
 bool send_data_pio(List<Item> &items);
-
+bool pio_send(int i);
 
   virtual bool initialize_tables (JOIN *join=0) { return 0; }
   virtual void send_error(uint errcode,const char *err)

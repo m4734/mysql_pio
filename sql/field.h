@@ -263,17 +263,18 @@ union item_value_t
 };
 struct pio3_item_t
 {
-	enum_field_types field_types;
+//	enum_field_types field_types;
 	item_value_t item_value; 
 	uint8 decimals;
 	my_bool unsigned_flag;
 	my_bool null_value;
 	char buffer[MAX_FIELD_WIDTH];
 	String* str;
+	enum_field_types f_type;
 
 	my_decimal decimal;
 	bool zerofill;
-	int8 dec;
+	uint dec;
 	uint precision;
 
 	int pft; //protocol function type

@@ -2989,7 +2989,7 @@ end_send(JOIN *join, QEP_TAB *qep_tab, bool end_of_records)
     if (join->do_send_rows)
 {
 	if (join->thd->pio3_on)
-		error = join->select_lex->query_result()->send_data(*fields);
+		error = join->select_lex->query_result()->send_data_pio(*fields);
 else
       error= join->select_lex->query_result()->send_data(*fields);
 }

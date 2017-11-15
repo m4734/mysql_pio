@@ -7493,7 +7493,7 @@ printf("ins\n");
 
 bool Item_null::pio_save(Protocol *protocol, String *packet)
 {
-	pio3_item.pft = 0;
+	pio3_item->pft = 0;
 	return false; // ?
 }
 
@@ -7612,6 +7612,7 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
 {
   bool result= false;                       // Will be set if null_value == 0
   enum_field_types f_type;
+	pio3_item->f_type = field_type();
   switch ((f_type=field_type())) {
   default:
   case MYSQL_TYPE_NULL:
@@ -7632,9 +7633,9 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
   {
 //    String *res;
 //    if ((res=val_str(buffer)))
-	pio3_item.item_value.res = val_str(pio3_item.str);
-	if (pio3_item.item_value.res)
-		pio3_item.pft = 1;
+	pio3_item->item_value.res = val_str(pio3_item->str);
+	if (pio3_item->item_value.res)
+		pio3_item->pft = 1;
 //      result= protocol->store(res->ptr(),res->length(),res->charset());
     else
     {
@@ -7646,11 +7647,11 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
   {
 //    longlong nr;
 //    nr= val_int();
-	pio3_item.item_value.lnr = val_int();
+	pio3_item->item_value.lnr = val_int();
     if (!null_value)
 //      result= protocol->store_tiny(nr);
 //	result = protocol->store_tiny(pio3_item.item_value.nr);
-	pio3_item.pft = 2;
+	pio3_item->pft = 2;
     break;
   }
   case MYSQL_TYPE_SHORT:
@@ -7658,11 +7659,11 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
   {
 //    longlong nr;
 //    nr= val_int();
-	pio3_item.item_value.lnr = val_int();
+	pio3_item->item_value.lnr = val_int();
     if (!null_value)
 //      result= protocol->store_short(nr);
 //	result = protocol->store_short(pio3_item.item_value.nr);
-	pio3_item.pft = 3;
+	pio3_item->pft = 3;
     break;
   }
   case MYSQL_TYPE_INT24:
@@ -7670,24 +7671,24 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
   {
 //    longlong nr;
 //    nr= val_int();
-	pio3_item.item_value.lnr = val_int();
+	pio3_item->item_value.lnr = val_int();
     if (!null_value)
 //      result= protocol->store_long(nr);
 //	result = protocol->store_long(pio3_item.item_value.nr);
-	pio3_item.pft = 4;
+	pio3_item->pft = 4;
     break;
   }
   case MYSQL_TYPE_LONGLONG:
   {
 //    longlong nr;
 //    nr= val_int();
-	pio3_item.item_value.lnr = val_int();
+	pio3_item->item_value.lnr = val_int();
     if (!null_value)
 {
 //      result= protocol->store_longlong(nr, unsigned_flag);
 //	result = protocol->store_longlong(pio3_item.item_value.nr,unsigned_flag);
-	pio3_item.pft = 5;
-	pio3_item.unsigned_flag = unsigned_flag;
+	pio3_item->pft = 5;
+	pio3_item->unsigned_flag = unsigned_flag;
 }
     break;
   }
@@ -7695,26 +7696,26 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
   {
 //    float nr;
 //    nr= (float) val_real();
-	pio3_item.item_value.fnr = (float) val_real();
+	pio3_item->item_value.fnr = (float) val_real();
     if (!null_value)
 {
 //      result= protocol->store(nr, decimals, buffer);
 //	result = protocol->store(pio3_item.item_value.fnr,decimals,buffer);
-	pio3_item.pft = 6;
-	pio3_item.decimals = decimals;
+	pio3_item->pft = 6;
+	pio3_item->decimals = decimals;
 }
     break;
   }
   case MYSQL_TYPE_DOUBLE:
   {
 //    double nr= val_real();
-	pio3_item.item_value.dnr = val_real();
+	pio3_item->item_value.dnr = val_real();
     if (!null_value)
 {
 //      result= protocol->store(nr, decimals, buffer);
 //	result = protocol->store(pio3_item.item_value.dnr,decimals,buffer);
-	pio3_item.pft = 7;
-	pio3_item.decimals = decimals;
+	pio3_item->pft = 7;
+	pio3_item->decimals = decimals;
 }
     break;
   }
@@ -7726,9 +7727,9 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
     get_date(&tm, TIME_FUZZY_DATE);
     if (!null_value)
 {
-	pio3_item.pft = 8;
-	pio3_item.item_value.tm = tm;
-	pio3_item.decimals = decimals;
+	pio3_item->pft = 8;
+	pio3_item->item_value.tm = tm;
+	pio3_item->decimals = decimals;
 //      result= (f_type == MYSQL_TYPE_DATE) ? protocol->store_date(&tm) :
   //                                          protocol->store(&tm, decimals);
 }
@@ -7740,16 +7741,16 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
     get_time(&tm);
     if (!null_value)
 {
-	pio3_item.pft = 9;
-	pio3_item.item_value.tm = tm;
-	pio3_item.decimals = decimals;
+	pio3_item->pft = 9;
+	pio3_item->item_value.tm = tm;
+	pio3_item->decimals = decimals;
 }
 //      result= protocol->store_time(&tm, decimals);
     break;
   }
   }
   if (null_value)
-	pio3_item.pft = 0;
+	pio3_item->pft = 0;
 //    result= protocol->store_null();
   return result;
 }
@@ -7952,7 +7953,7 @@ printf("ifs\n");
 bool Item_field::pio_save(Protocol *protocol, String *buffer)
 {
 	result_field->pio3_save = true;
-	result_field->pio3_item = &pio3_item;
+	result_field->pio3_item = pio3_item;
 bool rv = protocol->store(result_field);
 result_field->pio3_save = false;
 return rv;
@@ -8551,7 +8552,7 @@ bool Item_ref::pio_save(Protocol *prot, String *tmp)
 {
 bool rv;
 	result_field->pio3_save = true;
-	result_field->pio3_item = &pio3_item;
+	result_field->pio3_item = pio3_item;
 rv = prot->store(result_field);
 result_field->pio3_save = false;
 return rv;
@@ -9090,7 +9091,7 @@ bool Item_direct_view_ref::pio_save(Protocol *prot, String *tmp)
   if (has_null_row())
 {
 //    return prot->store_null();
-	pio3_item.pft = 0;
+	pio3_item->pft = 0;
 	return false;
 }
 

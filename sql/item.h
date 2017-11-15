@@ -1065,7 +1065,7 @@ public:
 //cgmin
 bool pio_save(Protocol *protocol, String *str); // protocol??
 //virtual bool pio_send(Protocol *protocol, String *str); // str??
-pio3_item_t pio3_item;
+pio3_item_t *pio3_item;
 
 
 

@@ -2796,24 +2796,33 @@ printf("sdp i %d\n",i);
 pthread_mutex_lock(&thd->pio3_mutex[i]);
 thd->pio3_run[i] = true;
 //thd->pio3_items[i]=items; // problem
-/*
+
 //thd->pio3_items[i].
 List_iterator<Item> it(items);
 Item* item;
 
 printf("l0 ");
+
+char buffer[MAX_FIELD_WIDTH];
+String str_buffer(buffer, sizeof(buffer), &my_charset_bin);
+
 while((item= it++))
 {
 //	thd->pio3_items[i].push_back(item->this_item());
 //	thd->pio3_items[i].push_back(item->clone_item());
 //	thd->pio3_items[i].push_back(Item_copy::create(item));
 
-pio3_item_t item2;
-item2.field_types = item->field_type();
-item2.decimals = item->decimals;
-item2.null_value = item->null_value;
-item2.unsigned_flag = item->unsigned_flag;
+pio3_item_t *item2 = (pio3_item_t*)malloc(sizeof(pio3_item_t));
+item->pio3_item = item2;
+//item2->field_types = item->field_type();
+item2->decimals = item->decimals;
+item2->null_value = item->null_value;
+item2->unsigned_flag = item->unsigned_flag;
 
+item->pio_save(&thd->pio3_protocol[i], &str_buffer);
+str_buffer.set(buffer, sizeof(buffer), &my_charset_bin);
+
+/*
 switch(item2.field_types)
 {
   default:
@@ -2863,14 +2872,14 @@ switch(item2.field_types)
   case MYSQL_TYPE_TIME:
     break;
 }
+*/
 
-
-	thd->pio3_items[i].push_back(item2);
+	thd->pio3_item[i].push_back(item2);
 
 //printf("i0 %d ",(int)item->field_type());
 }
 //printf("\n");
-*/
+
 /*
 List_iterator<Item> it2(thd->pio3_items[i]);
 printf("l1 ");
@@ -2896,6 +2905,8 @@ printf("send_data_pio f\n");
 return 0;
 }
 
+
+bool pio_send(THD* thd,int i);
 
 void *pio3_thd_pro(void* data)
 {
@@ -2924,7 +2935,8 @@ printf("ptp %d\n",i);
 //  protocol->start_row_pio();
 
 protocol->start_row();
-  if (false)//thd->send_result_set_row_pio(items,i)) //&
+//  if (thd->send_result_set_row_pio(items,i)) //&
+	if (pio_send(thd,i))
   {
 printf("abort!\n");
     protocol->abort_row();
@@ -2960,6 +2972,116 @@ if (thd->pio3_run[i] == false)
 
 }
 
+
+
+bool pio_send(THD *thd,int i)
+{
+
+
+Protocol *protocol = &thd->pio3_protocol[i];
+
+List_iterator<pio3_item_t> it(thd->pio3_item[i]);
+pio3_item_t* item;
+
+
+// 0 null / 1 string / 2 tiny / 3 short / 4 long / 5 longlong / 6 float / 7 double / 8 date / 9 time
+// 10 string2 / 11 decimal / 12 float2 / 13 double2 / 14 date2
+
+bool result = false;
+
+
+char buffer[MAX_FIELD_WIDTH];
+String str_buffer(buffer,sizeof(buffer),&my_charset_bin);
+
+while((item= it++))
+{
+
+	switch(item->pft)
+	{
+		case 0:
+		{
+			result= protocol->store_null();
+			break;
+		}
+		case 1:
+		{
+			String *res = item->item_value.res;
+			result = protocol->store(res->ptr(),res->length(),res->charset());
+			break;
+		}
+		case 2:
+		{
+			result = protocol->store_tiny(item->item_value.lnr);	
+			break;
+		}		
+		case 3:
+		{
+			result = protocol->store_short(item->item_value.lnr);
+			break;
+		}
+		case 4:
+		{
+			result = protocol->store_long(item->item_value.lnr);
+			break;
+		}
+		case 5:
+		{
+			result = protocol->store_longlong(item->item_value.lnr,item->unsigned_flag);
+			break;
+		}
+		case 6:
+		{
+			result = protocol->store(item->item_value.fnr,item->decimals,&str_buffer); // buffer?
+			break;
+		}
+		case 7:
+		{
+			result = protocol->store(item->item_value.dnr,item->decimals,&str_buffer);
+			break;
+		}
+		case 8:
+		{
+			result = (item->f_type == MYSQL_TYPE_DATE) ? protocol->store_date(&item->item_value.tm) : protocol->store(&item->item_value.tm,item->decimals);
+			break;
+		}
+		case 9:
+		{
+			result = protocol->store_time(&item->item_value.tm,item->decimals);
+			break;
+		}
+		case 10:
+		{
+			String *res = item->item_value.res;
+			result = res ? protocol->store(item->item_value.res) : protocol->store_null();
+			break;
+		}
+		case 11:
+		{
+			result = protocol->store_decimal(&item->decimal,item->zerofill ? item->precision : 0, item->dec);
+			break;
+		}
+		case 12:
+		{
+			result = protocol->store(item->item_value.fnr,item->dec,(String*) 0);
+			break;
+		}
+		case 13:
+		{
+			String buf;
+			result = protocol->store(item->item_value.dnr,item->dec,&buf);
+			break;
+		}
+		case 14:
+		{
+			result = protocol->store_date(&item->item_value.tm);
+			break;
+		}
+	}
+	str_buffer.set(buffer,sizeof(buffer),&my_charset_bin);
+}
+while(thd->pio3_item[i].pop() != 0);
+return result; // while???
+}
 bool Query_result_send::send_eof()
 {
   /* 

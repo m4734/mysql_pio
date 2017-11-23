@@ -2710,7 +2710,9 @@ bool Query_result_send::send_data(List<Item> &items)
 //  Protocol *protocol= &(thd->pio3_protocol[0]);
 Protocol *protocol = thd->get_protocol();
   DBUG_ENTER("Query_result_send::send_data");
+#ifdef pio_tp
 printf("send_data s\n");
+#endif
   if (unit->offset_limit_cnt)
   {						// using limit offset,count
     unit->offset_limit_cnt--;
@@ -2723,16 +2725,6 @@ printf("send_data s\n");
     by thd
   */
   ha_release_temporary_latches(thd);
-
-List<Item> items2;
-List_iterator_fast<Item> it(items);
-Item* item;
-
-while((item = it++))
-{
-	items2.push_back(Item_copy::create(item));
-printf("1");
-}
 
   protocol->start_row();
   if (thd->send_result_set_row(&items))
@@ -2751,7 +2743,9 @@ while((item = items2.pop())!=0)
 printf("2");
 }
 */
+#ifdef pio_tp
 printf("send_data f\n");
+#endif
 DBUG_RETURN(rv);
 //  DBUG_RETURN(protocol->end_row());
 
@@ -2764,9 +2758,12 @@ bool Query_result::send_data_pio(List<Item> &items)
 return send_data(items);
 }
 */
+//bool pio_send(THD* thd,int i);
 bool Query_result::send_data_pio(List<Item> &items)
 {
+#ifdef pio_tp
 printf("send_data_pio s\n");
+#endif
   if (unit->offset_limit_cnt)
   {						// using limit offset,count
     unit->offset_limit_cnt--;
@@ -2781,6 +2778,7 @@ printf("send_data_pio s\n");
   ha_release_temporary_latches(thd);
 
 int i;
+/*
 while(1)
 {
 for (i=0;i<MAX_PIO;++i)
@@ -2790,21 +2788,47 @@ for (i=0;i<MAX_PIO;++i)
 }
 	if (i<MAX_PIO)
 		break;
-	usleep(1);
+//	i = i;
+//	usleep(0);
 }
-printf("sdp i %d\n",i);
+*/
+i = 0;
+
+/*
+while(1)
+{
+//pthread_spin_lock(&thd->pio3_spin[i]);
 pthread_mutex_lock(&thd->pio3_mutex[i]);
-thd->pio3_run[i] = true;
+	if (thd->pio3_run[i] == false)
+		break;
+//pthread_spin_unlock(&thd->pio3_spin[i]);
+pthread_mutex_unlock(&thd->pio3_mutex[i]);
+}
+*/
+//pthread_spin_lock(&thd->pio3_spin[i]);
+
+
+
+
+#ifdef pio_tp
+printf("sdp i %d\n",i);
+#endif
+//pthread_mutex_lock(&thd->pio3_mutex[i]);
+//thd->pio3_run[i] = true;
+
+
+thd->pio3_net[i].pkt_nr = thd->net.pkt_nr++;
+//thd->pio3_net[i].pio_pkt_nr = thd->net.pkt_nr++;
+
 //thd->pio3_items[i]=items; // problem
 
 //thd->pio3_items[i].
 List_iterator<Item> it(items);
 Item* item;
 
-printf("l0 ");
 
-char buffer[MAX_FIELD_WIDTH];
-String str_buffer(buffer, sizeof(buffer), &my_charset_bin);
+//char buffer[MAX_FIELD_WIDTH];
+//String str_buffer(buffer, sizeof(buffer), &my_charset_bin);
 
 while((item= it++))
 {
@@ -2812,71 +2836,28 @@ while((item= it++))
 //	thd->pio3_items[i].push_back(item->clone_item());
 //	thd->pio3_items[i].push_back(Item_copy::create(item));
 
-pio3_item_t *item2 = (pio3_item_t*)malloc(sizeof(pio3_item_t));
+pio3_item_t* item2 = (pio3_item_t*)malloc(sizeof(pio3_item_t));
 item->pio3_item = item2;
 //item2->field_types = item->field_type();
 item2->decimals = item->decimals;
 item2->null_value = item->null_value;
 item2->unsigned_flag = item->unsigned_flag;
+item2->pio_t = i;
+//item2->cs = my_charset_bin;
 
-item->pio_save(&thd->pio3_protocol[i], &str_buffer);
-str_buffer.set(buffer, sizeof(buffer), &my_charset_bin);
+//item2->str.set(item2->buffer,sizeof(item2->buffer),&item2->cs);
 
-/*
-switch(item2.field_types)
-{
-  default:
-  case MYSQL_TYPE_NULL:
-  case MYSQL_TYPE_DECIMAL:
-  case MYSQL_TYPE_ENUM:
-  case MYSQL_TYPE_SET:
-  case MYSQL_TYPE_TINY_BLOB:
-  case MYSQL_TYPE_MEDIUM_BLOB:
-  case MYSQL_TYPE_LONG_BLOB:
-  case MYSQL_TYPE_BLOB:
-  case MYSQL_TYPE_GEOMETRY:
-  case MYSQL_TYPE_STRING:
-  case MYSQL_TYPE_VAR_STRING:
-  case MYSQL_TYPE_VARCHAR:
-  case MYSQL_TYPE_BIT:
-  case MYSQL_TYPE_NEWDECIMAL:
-  case MYSQL_TYPE_JSON:
-  {
-    if ((item2.item_value.res=item->val_str(item2.buffer)) == 0)
-      DBUG_ASSERT(null_value);
-    break;
-  }
-  case MYSQL_TYPE_TINY:
-  case MYSQL_TYPE_SHORT:
-  case MYSQL_TYPE_YEAR:
-  case MYSQL_TYPE_INT24:
-  case MYSQL_TYPE_LONG:
-  case MYSQL_TYPE_LONGLONG:
-  {
-    item2.item_value.lnr= item->val_int();
-    break;
-  }
- case MYSQL_TYPE_FLOAT:
-  {
-    item2.item_value.fnr= (float) item->val_real();
-    break;
-  }
-  case MYSQL_TYPE_DOUBLE:
-  {
-    item2.item_value.dnr= item->val_real();
-    break;
-  }
-  case MYSQL_TYPE_DATETIME:
-  case MYSQL_TYPE_DATE:
-  case MYSQL_TYPE_TIMESTAMP:
-  case MYSQL_TYPE_TIME:
-    break;
-}
-*/
+//item2->str = String(item2->buffer, sizeof(item2->buffer), &my_charset_bin);
+#ifdef pio_tp
+printf("pio_save s\n");
+#endif
+item->pio_save(&thd->pio3_protocol[i],NULL);// &item2->str);
+#ifdef pio_tp
+printf("pio_save f\n");
+#endif
 
 	thd->pio3_item[i].push_back(item2);
 
-//printf("i0 %d ",(int)item->field_type());
 }
 //printf("\n");
 
@@ -2893,24 +2874,166 @@ printf("\n");
 //thd->pio3_protocol[i] = *(thd->get_protocol());
 //thd->pio3_protocol[i].init(thd);
 //thd->pio3_protocol[i].packet = thd->pio3_packet[i];
-pthread_mutex_unlock(&thd->pio3_mutex[i]);
-pthread_cond_signal(&thd->pio3_cond[i]);
 
+//pthread_spin_lock(&thd->pio3_spin[i]);
+thd->pio3_run[i] = true;
+
+//pthread_spin_unlock(&thd->pio3_spin[i]);
+//pthread_mutex_unlock(&thd->pio3_mutex[i]);
+
+//pthread_mutex_unlock(&thd->pio3_mutex[i]);
+//pthread_cond_signal(&thd->pio3_cond[i]);
+
+
+/*
 while(thd->pio3_run[i])
 {
 usleep(1);
 }
+*/
 
+thd->pio3_protocol[i].start_row();
+//  if (thd->send_result_set_row_pio(items,i)) //&
+	if (thd->pio_send(i))
+  {
+printf("abort!\n");
+    thd->pio3_protocol[i].abort_row();
+return NULL;
+//    DBUG_RETURN(TRUE);
+  }
+
+  thd->inc_sent_row_count(1);
+//???
+//protocol->end_row_pio();
+thd->pio3_protocol[i].end_row();
+
+#ifdef pio_tp
 printf("send_data_pio f\n");
+#endif
 return 0;
 }
 
 
-bool pio_send(THD* thd,int i);
+void THD::pio3_init()
+{
+#ifdef pio_tp
+printf("pio3_init s\n");
+#endif
+	int i;
+	for (i=0;i<MAX_PIO;i++)
+	{
+//pio3_protocol[i].init_net(net.vio);
+
+//		pio3_net[i].pio_pkt_nr = &net.pkt_nr; // temp
+
+
+//pthread_spin_init(&pio3_spin[i],0);
+pthread_mutex_init(&pio3_mutex[i],NULL);
+
+pio3_run[i] = false;
+pio3_exit[i] = false;
+/*
+		pthread_mutex_init(&pio3_mutex[i],NULL);
+		pthread_cond_init(&pio3_cond[i],NULL);
+		pio3_run[i] = true;
+*/		
+		pio3_data_t* data;
+		data = (pio3_data_t*)malloc(sizeof(pio3_data_t));
+		data->thd = this;
+		data->pio_t = i;
+		
+		pthread_create(&pio3_t[i],NULL,pio3_thd_pro,(void*)(data));
+//while (pio3_run[i] == true)
+/*
+while(1)
+{
+	if (pio3_run[i] == false)
+		break;
+}
+*/
+//	usleep(0);
+//	i = i;
+//	printf("dr true\n");
+//	usleep(1);
+	}
+/*
+	while(1)
+	{
+		for (i=0;i<MAX_PIO;i++)
+		{
+			if (pio3_run[i])
+				break;
+		}
+		if (i>=MAX_PIO)
+			break;
+		usleep(1);
+	}
+*/
+#ifdef pio_tp
+printf("pio3_init e\n");
+#endif
+}
+
+
+void THD::pio3_end()
+{
+#ifdef pio_tp
+printf("pio3_end s\n");
+#endif
+//scanf("%d");
+
+	int i;
+	for (i=0;i<MAX_PIO;++i)
+	{
+
+
+//		pthread_spin_lock(&pio3_spin[i]);
+		pthread_mutex_lock(&pio3_mutex[i]);
+
+		pio3_exit[i] = true;
+
+
+//		pthread_spin_unlock(&pio3_spin[i]);
+		pthread_mutex_unlock(&pio3_mutex[i]);
+
+
+//		while(pio3_run[i])
+//			usleep(0);
+//			i = i;
+
+//		pio3_run[i] = false;
+//		pthread_cond_signal(&pio3_cond[i]);
+		pthread_join(pio3_t[i],NULL);
+//		pthread_spin_destroy(&pio3_spin[i]);
+		pthread_mutex_destroy(&pio3_mutex[i]);
+}
+
+for (i=0;i<MAX_PIO;++i)
+{
+
+//pio3_run[i] = true;
+//while(pio3_run[i])
+//	usleep(0);
+//	i = i;
+#ifdef pio_tp
+printf("pio3 net_flush s\n");
+#endif
+net_flush(&pio3_net[i]);
+#ifdef pio_tp
+printf("pio3 net_flush e\n");
+#endif
+//pio3_protocol[i].end_net();
+//net.pkt_nr = pio3_net[i].pkt_nr; // temp
+	}
+#ifdef pio_tp
+printf("pio3_end f\n");
+#endif
+}
+
 
 void *pio3_thd_pro(void* data)
 {
-
+return NULL;
 
 THD* thd = ((pio3_data_t*)data)->thd;
 int i = ((pio3_data_t*)data)->pio_t;
@@ -2920,23 +3043,56 @@ int i = ((pio3_data_t*)data)->pio_t;
 Protocol *protocol = &thd->pio3_protocol[i];
 
 //	protocol->init_pio(thd,i);
-thd->pio3_run[i] = false;
-pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
+//thd->pio3_run[i] = false;
+//pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
+//while(thd->pio3_run[i] == false && thd->pio3_exit == false)
+/*
+while(1)
+{
+	if (thd->pio3_run[i] == true || thd->pio3_exit == true)
+		break;
+
+}
+*/
+//	usleep(0);
+//	i = i;
+//	printf("dr false\n");
+//	usleep(1);
+
+/*
 if (thd->pio3_run[i] == false)
 {
 	pthread_mutex_unlock(&thd->pio3_mutex[i]);
 	free(data);
 	return NULL;
 }
-
+*/
+/*
+if (thd->pio3_exit)
+{
+	thd->pio3_run[i] = false;
+	free(data);
+	return NULL;
+}
+*/
 while(1)
 {
+
+
+//pthread_spin_lock(&thd->pio3_spin[i]);
+pthread_mutex_lock(&thd->pio3_mutex[i]);
+
+
+if (thd->pio3_run[i])
+{
+#ifdef pio_tp
 printf("ptp %d\n",i);
+#endif
 //  protocol->start_row_pio();
 
 protocol->start_row();
 //  if (thd->send_result_set_row_pio(items,i)) //&
-	if (pio_send(thd,i))
+	if (thd->pio_send(i))
   {
 printf("abort!\n");
     protocol->abort_row();
@@ -2948,6 +3104,22 @@ return NULL;
 //???
 //protocol->end_row_pio();
 protocol->end_row();
+thd->pio3_run[i] = false;
+}
+if (thd->pio3_exit[i])
+{
+	free(data);
+//	pthread_spin_unlock(&thd->pio3_spin[i]);
+	pthread_mutex_unlock(&thd->pio3_mutex[i]);
+	return NULL;
+}
+
+
+//pthread_spin_unlock(&thd->pio3_spin[i]);
+pthread_mutex_unlock(&thd->pio3_mutex[i]);
+
+
+//net_flush(&thd->pio3_net[i]);
 
 //  DBUG_RETURN(protocol->end_row());
 //pthread_mutex_lock(&thd->pio3_mutex[i]);
@@ -2960,24 +3132,42 @@ while((item = items->pop()) != 0) // free???
 }
 printf("\n");
 */
+/*
 thd->pio3_run[i] = false;
-pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
+//pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
+while(thd->pio3_run[i] == false && thd->pio3_exit == false)
+//	usleep(0);
+	i = i;
+*/
+/*
 if (thd->pio3_run[i] == false)
 {
 	pthread_mutex_unlock(&thd->pio3_mutex[i]);
 	free(data);
 	return NULL;
 }
-}
-
-}
-
-
-
-bool pio_send(THD *thd,int i)
+*/
+/*
+if (thd->pio3_exit)
 {
+	thd->pio3_run[i] = false;
+	free(data);
+	return NULL;
+}
+*/
+}
+
+}
 
 
+
+//bool pio_send(THD *thd,int i)
+bool THD::pio_send(int i)
+{
+THD *thd = this;
+#ifdef pio_tp
+printf("pio_send s %d\n",i);
+#endif
 Protocol *protocol = &thd->pio3_protocol[i];
 
 List_iterator<pio3_item_t> it(thd->pio3_item[i]);
@@ -2995,7 +3185,9 @@ String str_buffer(buffer,sizeof(buffer),&my_charset_bin);
 
 while((item= it++))
 {
-
+#ifdef pio_tp
+	printf("item->pft %d\n",item->pft);
+#endif
 	switch(item->pft)
 	{
 		case 0:
@@ -3005,8 +3197,16 @@ while((item= it++))
 		}
 		case 1:
 		{
-			String *res = item->item_value.res;
-			result = protocol->store(res->ptr(),res->length(),res->charset());
+//			String *res = item->item_value.res;
+//			result = protocol->store(res->ptr(),res->length(),res->charset());
+/*
+			int i;
+			printf("---pio send string---\n");
+			for (i=0;i<item->item_value.res->length();++i)
+				printf("%d ",(int)item->item_value.res->ptr()[i]);
+			printf("\n");
+*/
+			result = protocol->store(item->item_value.res->ptr(),item->item_value.res->length(),item->item_value.res->charset());
 			break;
 		}
 		case 2:
@@ -3051,8 +3251,16 @@ while((item= it++))
 		}
 		case 10:
 		{
-			String *res = item->item_value.res;
-			result = res ? protocol->store(item->item_value.res) : protocol->store_null();
+//			String *res = item->item_value.res;
+//			result = res ? protocol->store(item->item_value.res) : protocol->store_null();
+#ifdef pio_tp
+			int j;
+			printf("---pio send string--- %d\n",i);
+			for (j=0;j<item->item_value.res->length();++j)
+				printf("%d ",(int)item->item_value.res->ptr()[j]);
+			printf("\n");
+#endif
+			result = item->item_value.res ? protocol->store(item->item_value.res) : protocol->store_null();
 			break;
 		}
 		case 11:
@@ -3079,7 +3287,12 @@ while((item= it++))
 	}
 	str_buffer.set(buffer,sizeof(buffer),&my_charset_bin);
 }
-while(thd->pio3_item[i].pop() != 0);
+//pio3_item_t* item;
+while((item = thd->pio3_item[i].pop()) != 0)
+	free(item);
+#ifdef pio_tp
+printf("pio_send f %d\n",i);
+#endif
 return result; // while???
 }
 bool Query_result_send::send_eof()
@@ -4965,8 +5178,9 @@ void THD::parse_error_at(const YYLTYPE &location, const char *s)
 bool THD::send_result_metadata(List<Item> *list, uint flags)
 {
 bool rv = false;
+#ifdef pio_tp
 printf("send result metadata s\n");
-
+#endif
  DBUG_ENTER("send_result_metadata");
   List_iterator_fast<Item> it(*list);
   Item *item;
@@ -4986,7 +5200,9 @@ for (i=0;i<MAX_PIO;i++)
 	  if (pio3_protocol[i].start_result_metadata(list->elements, flags,
           variables.character_set_results))
 {
+#ifdef pio_tp
 printf("pio meta error\n");
+#endif
     goto err;
 }
 
@@ -5012,7 +5228,9 @@ printf("pio meta error\n");
       item->send(m_protocol, &tmp);
     if (m_protocol->end_row())
 {
+#ifdef pio_tp
 printf("send result metadata ee\n");
+#endif
 
       DBUG_RETURN(true);
 }
@@ -5025,11 +5243,15 @@ printf("send result metadata ee\n");
   }
 
   rv = m_protocol->end_result_metadata();
+#ifdef pio_tp
 printf("send result metadata e\n");
+#endif
 DBUG_RETURN(rv);
 
   err:
+#ifdef pio_tp
 printf("send result metadata eee\n");
+#endif
   my_error(ER_OUT_OF_RESOURCES, MYF(0));        /* purecov: inspected */
   DBUG_RETURN(1);                               /* purecov: inspected */
 }

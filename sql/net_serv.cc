@@ -105,7 +105,7 @@ my_bool my_net_init(NET *net, Vio* vio)
   net->error=0; net->return_status=0;
   net->pkt_nr=net->compress_pkt_nr=0;
 //cgmin
-net->pio_pkt_nr = &net->pkt_nr;
+//net->pio_pkt_nr = &net->pkt_nr;
 
   net->write_pos=net->read_pos = net->buff;
   net->last_error[0]=0;
@@ -219,10 +219,11 @@ my_bool net_flush(NET *net)
 {
   my_bool error= 0;
   DBUG_ENTER("net_flush");
+#ifdef pio_tp
 printf("net_flush s\n");
+#endif
   if (net->buff != net->write_pos)
   {
-printf("net_flush\n");
     error= net_write_packet(net, net->buff,
                             (size_t) (net->write_pos - net->buff));
     net->write_pos= net->buff;
@@ -230,7 +231,9 @@ printf("net_flush\n");
   /* Sync packet number if using compression */
   if (net->compress)
     net->pkt_nr=net->compress_pkt_nr;
+#ifdef pio_tp
 printf("net_flush f\n");
+#endif
   DBUG_RETURN(error);
 }
 
@@ -289,7 +292,9 @@ my_bool my_net_write(NET *net, const uchar *packet, size_t len)
 
   if (unlikely(!net->vio)) /* nowhere to write */
 {
+#ifdef pio_tp
 printf("my_net_write - no vio\n");
+#endif
     return 0;
 }
   MYSQL_NET_WRITE_START(len);
@@ -309,8 +314,9 @@ printf("my_net_write - no vio\n");
   {
     const ulong z_size = MAX_PACKET_LENGTH;
     int3store(buff, z_size);
-//    buff[3]= (uchar) net->pkt_nr++;
-    buff[3]= (uchar) (*net->pio_pkt_nr)++; // FAA?
+    buff[3]= (uchar) net->pkt_nr++;
+//    buff[3]= (uchar) (*net->pio_pkt_nr)++; // FAA?
+//	buff[3]= (uchar) net->pio_pkt_nr;
 
     if (net_write_buff(net, buff, NET_HEADER_SIZE) ||
         net_write_buff(net, packet, z_size))
@@ -323,8 +329,9 @@ printf("my_net_write - no vio\n");
   }
   /* Write last packet */
   int3store(buff, static_cast<uint>(len));
-//  buff[3]= (uchar) net->pkt_nr++;
-    buff[3]= (uchar) (*net->pio_pkt_nr)++; // FAA?
+  buff[3]= (uchar) net->pkt_nr++;
+//    buff[3]= (uchar) (*net->pio_pkt_nr)++; // FAA?
+//	buff[3] = (uchar) net->pio_pkt_nr;
 
   if (net_write_buff(net, buff, NET_HEADER_SIZE))
   {
@@ -372,7 +379,9 @@ net_write_command(NET *net,uchar command,
       const uchar *header, size_t head_len,
       const uchar *packet, size_t len)
 {
+#ifdef pio_tp
 printf("net_write_command\n");
+#endif
   size_t length=len+1+head_len;			/* 1 extra byte for command */
   uchar buff[NET_HEADER_SIZE+1];
   uint header_size=NET_HEADER_SIZE+1;
@@ -391,8 +400,9 @@ printf("net_write_command\n");
     do
     {
       int3store(buff, MAX_PACKET_LENGTH);
-       buff[3]= (uchar) (*net->pio_pkt_nr)++;
-//     buff[3]= (uchar) net->pkt_nr++;
+//       buff[3]= (uchar) (*net->pio_pkt_nr)++;
+//	buff[3] = (uchar) net->pio_pkt_nr;
+     buff[3]= (uchar) net->pkt_nr++;
       if (net_write_buff(net, buff, header_size) ||
           net_write_buff(net, header, head_len) ||
           net_write_buff(net, packet, len))
@@ -409,8 +419,9 @@ printf("net_write_command\n");
     len=length;         /* Data left to be written */
   }
   int3store(buff, static_cast<uint>(length));
-   buff[3]= (uchar) (*net->pio_pkt_nr)++;
-// buff[3]= (uchar) net->pkt_nr++;
+//   buff[3]= (uchar) (*net->pio_pkt_nr)++;
+//	buff[3] = (uchar) net->pio_pkt_nr;
+ buff[3]= (uchar) net->pkt_nr++;
   rc= MY_TEST(net_write_buff(net, buff, header_size) ||
               (head_len && net_write_buff(net, header, head_len)) ||
               net_write_buff(net, packet, len) || net_flush(net));
@@ -444,21 +455,24 @@ printf("net_write_command\n");
   @retval
     1
 */
-
+//#define pio_tp
 static my_bool
 net_write_buff(NET *net, const uchar *packet, size_t len)
 {
+#ifdef pio_tp
 printf("net_write_buff s\n");
+#endif
   ulong left_length;
   if (net->compress && net->max_packet > MAX_PACKET_LENGTH)
     left_length= (ulong) (MAX_PACKET_LENGTH - (net->write_pos - net->buff));
   else
     left_length= (ulong) (net->buff_end - net->write_pos);
+#ifdef pio_tp
 int i;
 for (i=0;i<len;++i)
 	printf("%d ",packet[i]);
 printf("\n");
-
+#endif
 #ifdef DEBUG_DATA_PACKETS
   DBUG_DUMP("data", packet, len);
 #endif
@@ -496,7 +510,9 @@ printf("\n");
   }
   memcpy(net->write_pos, packet, len);
   net->write_pos+= len;
+#ifdef pio_tp
 printf("net_write_buff f\n");
+#endif
   return 0;
 }
 
@@ -515,8 +531,9 @@ static my_bool
 net_write_raw_loop(NET *net, const uchar *buf, size_t count)
 {
   unsigned int retry_count= 0;
+#ifdef pio_tp
 printf("net_write_raw_loop count %d /",(int)count);
-
+#endif
   while (count)
   {
     size_t sentcnt= vio_write(net->vio, buf, count);
@@ -537,7 +554,9 @@ printf("net_write_raw_loop count %d /",(int)count);
     thd_increment_bytes_sent(sentcnt);
 #endif
   }
+#ifdef pio_tp
 printf("%d\n",count);
+#endif
   /* On failure, propagate the error code. */
   if (count)
   {
@@ -550,7 +569,9 @@ printf("%d\n",count);
     else
 {
       net->last_errno= ER_NET_ERROR_ON_WRITE;
+#ifdef pio_tp
 printf("packet write error\n");
+#endif
 }
 
 #ifdef MYSQL_SERVER
@@ -688,7 +709,9 @@ net_write_packet(NET *net, const uchar *packet, size_t length)
 
 static my_bool net_read_raw_loop(NET *net, size_t count)
 {
+#ifdef pio_tp
 printf("net_read_raw_loop count %d /",(int)count);
+#endif
   bool eof= false;
   unsigned int retry_count= 0;
   uchar *buf= net->buff + net->where_b;
@@ -719,7 +742,9 @@ printf("net_read_raw_loop count %d /",(int)count);
     thd_increment_bytes_received(recvcnt);
 #endif
   }
+#ifdef pio_tp
 printf("%d\n",(int)count);
+#endif
   /* On failure, propagate the error code. */
   if (count)
   {
@@ -731,7 +756,9 @@ printf("%d\n",(int)count);
       net->last_errno= ER_NET_READ_INTERRUPTED;
     else
 {
+#ifdef pio_tp
 printf("packet read error\n");
+#endif
       net->last_errno= ER_NET_READ_ERROR;
 }
 

@@ -342,7 +342,8 @@ typedef struct st_net {
   unsigned int pkt_nr,compress_pkt_nr;
 
 //cgmin
-unsigned int* pio_pkt_nr;
+//unsigned int* pio_pkt_nr;
+unsigned int pio_pkt_nr;
 
   unsigned int write_timeout, read_timeout, retry_count;
   int fcntl;

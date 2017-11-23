@@ -258,7 +258,9 @@ net_send_ok(THD *thd,
   NET *net= thd->get_protocol_classic()->get_net();
   uchar buff[MYSQL_ERRMSG_SIZE + 10];
   uchar *pos, *start;
+#ifdef pio_tp
 printf("net_send_ok s\n");
+#endif
   /*
     To be used to manage the data storage in case session state change
     information is present.
@@ -370,7 +372,9 @@ printf("net_send_ok s\n");
 
   thd->get_stmt_da()->set_overwrite_status(false);
   DBUG_PRINT("info", ("OK sent, so no more error sending allowed"));
+#ifdef pio_tp
 printf("net_send_ok f\n");
+#endif
   DBUG_RETURN(error);
 }
 
@@ -406,7 +410,9 @@ net_send_eof(THD *thd, uint server_status, uint statement_warn_count)
   NET *net= thd->get_protocol_classic()->get_net();
   bool error= FALSE;
   DBUG_ENTER("net_send_eof");
+#ifdef pio_tp
 printf("net_send_eof s\n");
+#endif
   /* Set to TRUE if no active vio, to work well in case of --init-file */
   if (net->vio != 0)
   {
@@ -417,7 +423,9 @@ printf("net_send_eof s\n");
     thd->get_stmt_da()->set_overwrite_status(false);
     DBUG_PRINT("info", ("EOF sent, so no more error sending allowed"));
   }
+#ifdef pio_tp
 printf("net_send_eof f\n");
+#endif
   DBUG_RETURN(error);
 }
 
@@ -617,7 +625,9 @@ uchar *net_store_data(uchar *to, longlong from)
 //cgmin
 void Protocol_pio::init(THD *thd_arg,int i)
 {
-printf("protocol pio init\n");
+#ifdef pio_tp
+printf("protocol pio init %d\n",i);
+#endif
 	pio_t = i;
 
   m_thd= thd_arg;
@@ -633,7 +643,9 @@ printf("protocol pio init\n");
 
 void Protocol_classic::init(THD *thd_arg)
 {
+#ifdef pio_tp
 printf("protocol classic init\n");
+#endif
   m_thd= thd_arg;
   packet= &m_thd->packet;
   convert= &m_thd->convert_buffer;
@@ -656,7 +668,9 @@ Protocol_classic::send_ok(uint server_status, uint statement_warn_count,
                           ulonglong affected_rows, ulonglong last_insert_id,
                           const char *message)
 {
+#ifdef pio_tp
 printf("send_ok\n");
+#endif
   DBUG_ENTER("Protocol_classic::send_ok");
   const bool retval=
     net_send_ok(m_thd, server_status, statement_warn_count,
@@ -673,7 +687,9 @@ printf("send_ok\n");
 
 bool Protocol_classic::send_eof(uint server_status, uint statement_warn_count)
 {
+#ifdef pio_tp
 printf("send_eof\n");
+#endif
   DBUG_ENTER("Protocol_classic::send_eof");
   bool retval;
   /*
@@ -724,7 +740,9 @@ void Protocol_classic::set_write_timeout(ulong write_timeout)
 // NET interaction functions
 bool Protocol_classic::init_net(Vio *vio)
 {
+#ifdef pio_tp
 printf("classic init_net\n");
+#endif
   bool rv = my_net_init(&m_thd->net, vio);
 //if (m_thd->pio3_on)
 //	m_thd->pio3_init_net(vio);
@@ -734,7 +752,9 @@ return rv;
 //cgmin
 bool Protocol_pio::init_net(Vio *vio)
 {
+#ifdef pio_tp
 printf("pio init_net\n");
+#endif
 	return my_net_init(&m_thd->pio3_net[pio_t],vio);
 }
 
@@ -746,28 +766,38 @@ void Protocol_classic::claim_memory_ownership()
 
 void Protocol_classic::end_net()
 {
+#ifdef pio_tp
 printf("pcen s\n");
+#endif
   DBUG_ASSERT(m_thd->net.buff);
   net_end(&m_thd->net);
   m_thd->net.vio= NULL;
+#ifdef pio_tp
 printf("pcen e\n");
+#endif
 }
 
 //cgmin
 void Protocol_pio::end_net()
 {
+#ifdef pio_tp
 printf("ppen s\n");
+#endif
   DBUG_ASSERT(m_thd->pio3_net[pio_t].buff); //??
   net_end(&m_thd->pio3_net[pio_t]);
   m_thd->pio3_net[pio_t].vio= NULL;
+#ifdef pio_tp
 printf("ppen f\n");
+#endif
 }
 
 
 
 bool Protocol_classic::flush_net()
 {
+#ifdef pio_tp
 printf("classic flush_net\n");
+#endif
   return net_flush(&m_thd->net);
 }
 
@@ -1030,11 +1060,15 @@ return 0;
 
 int Protocol_classic::get_command(COM_DATA *com_data, enum_server_command *cmd)
 {
+#ifdef pio_tp
 printf("classic get_command s\n");
+#endif
   // read packet from the network
   if(int rc= read_packet())
 {
+#ifdef pio_tp
 printf("classic get_command f\n");
+#endif
     return rc;
 }
   /*
@@ -1063,8 +1097,9 @@ printf("classic get_command f\n");
   // Skip 'command'
   packet_length--;
   raw_packet++;
-
+#ifdef pio_tp
 printf("classic get_command f before pp \n");
+#endif
   return parse_packet(com_data, *cmd);
 }
 
@@ -1091,7 +1126,9 @@ bool Protocol_classic::flush()
 #ifndef EMBEDDED_LIBRARY
   bool error;
   m_thd->get_stmt_da()->set_overwrite_status(true);
+#ifdef pio_tp
 printf("classic flush\n");
+#endif
   error= net_flush(&m_thd->net);
   m_thd->get_stmt_da()->set_overwrite_status(false);
   return error;
@@ -1105,7 +1142,9 @@ bool Protocol_pio::flush()
 #ifndef EMBEDDED_LIBRARY
   bool error;
   m_thd->get_stmt_da()->set_overwrite_status(true);
+#ifdef pio_tp
 printf("pio flush\n");
+#endif
 //  error= net_flush(&m_thd->net);
 error = net_flush(&m_thd->pio3_net[pio_t]);
   m_thd->get_stmt_da()->set_overwrite_status(false);
@@ -1283,12 +1322,16 @@ bool Protocol_classic::send_field_metadata(Send_field *field,
 bool Protocol_classic::end_row()
 {
   DBUG_ENTER("Protocol_classic::end_row");
+#ifdef pio_tp
 printf("pce s\n");
+#endif
   if (m_thd->get_protocol()->connection_alive())
 {
     bool rv = my_net_write(&m_thd->net, (uchar *) packet->ptr(),
                              packet->length());
+#ifdef pio_tp
 printf("pce f\n");
+#endif
 DBUG_RETURN(rv);
 }
   DBUG_RETURN(0);
@@ -1296,18 +1339,25 @@ DBUG_RETURN(rv);
 
 bool Protocol_pio::end_row()
 {
-printf("ppe s\n");
+#ifdef pio_tp
+printf("ppe s %d\n",pio_t);
+#endif
   DBUG_ENTER("Protocol_classic::end_row");
   if (m_thd->pio3_protocol[pio_t].connection_alive())
 {
 //printf("ppe connection alive\n");
 
-    bool rv = my_net_write(&m_thd->pio3_net[pio_t], (uchar *) packet->ptr(),
-                             packet->length());
-printf("ppe e\n");
+//    bool rv = my_net_write(&m_thd->pio3_net[pio_t], (uchar *) packet->ptr(),
+//                             packet->length());
+bool rv = my_net_write(&m_thd->pio3_net[pio_t], (uchar *) m_thd->pio3_packet[pio_t].ptr(),m_thd->pio3_packet[pio_t].length());
+#ifdef pio_tp
+printf("ppe e %d\n",pio_t);
+#endif
 	DBUG_RETURN(rv);
 }
-printf("ppe e\n");
+#ifdef pio_tp
+printf("ppe e %d\n",pio_t);
+#endif
   DBUG_RETURN(0);
 
 
@@ -1361,12 +1411,16 @@ bool Protocol_pio::connection_alive()
 */
 void Protocol_text::start_row()
 {
+#ifdef pio_tp
 printf("pts s\n");
+#endif
 #ifndef DBUG_OFF
   field_pos= 0;
 #endif
   packet->length(0);
+#ifdef pio_tp
 printf("pts f\n");
+#endif
 }
 
 
@@ -1544,6 +1598,7 @@ bool Protocol_text::store(double from, uint32 decimals, String *buffer)
 
 bool Protocol_text::store(Proto_field *field)
 {
+//printf("ts0---\n");
   return field->send_text(this);
 }
 
@@ -1712,24 +1767,32 @@ if (m_thd->get_protocol()->type() == Protocol::PROTOCOL_BINARY)
 #ifndef EMBEDDED_LIBRARY
 void Protocol_binary::start_row()
 {
+#ifdef pio_tp
 printf("pbs s\n");
+#endif
   if (send_metadata)
     return Protocol_text::start_row();
   packet->length(bit_fields+1);
   memset(const_cast<char*>(packet->ptr()), 0, 1+bit_fields);
   field_pos=0;
+#ifdef pio_tp
 printf("pbs f\n");
+#endif
 }
 
 //cgmin
 void Protocol_pio::start_row()
 {
+#ifdef pio_tp
 printf("pps1 s\n");
+#endif
 if (m_thd->get_protocol()->type() == Protocol::PROTOCOL_BINARY)
 	return Protocol_binary::start_row();
 else
 	return Protocol_text::start_row();
+#ifdef pio_tp
 printf("pps1 e\n");
+#endif
 }
 #endif
 
@@ -1903,6 +1966,7 @@ bool Protocol_binary::store(double from, uint32 decimals, String *buffer)
 
 bool Protocol_binary::store(Proto_field *field)
 {
+printf("bs-+--\n");
   if(send_metadata)
     return Protocol_text::store(field);
   return field->send_binary(this);

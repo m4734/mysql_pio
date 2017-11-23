@@ -193,11 +193,13 @@ size_t vio_write(Vio *vio, const uchar* buf, size_t size)
   ssize_t ret;
   int flags= 0;
   DBUG_ENTER("vio_write");
+#ifdef pio_tp
 printf("vio_write \n");
 int i;
 for (i=0;i<size;i++)
 	printf("%d ",(int)buf[i]);
 printf("\n");
+#endif
   /* If timeout is enabled, do not block. */
   if (vio->write_timeout >= 0)
     flags= VIO_DONTWAIT;

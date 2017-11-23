@@ -7486,13 +7486,18 @@ Item* Item::clone_item()//cgmin???
 
 bool Item_null::send(Protocol *protocol, String *packet)
 {
+#ifdef pio_tp
 printf("ins\n");
+#endif
   return protocol->store_null();
 }
 
 
 bool Item_null::pio_save(Protocol *protocol, String *packet)
 {
+#ifdef pio_tp
+printf ("ins\n");
+#endif
 	pio3_item->pft = 0;
 	return false; // ?
 }
@@ -7503,10 +7508,14 @@ bool Item_null::pio_save(Protocol *protocol, String *packet)
 
 bool Item::send(Protocol *protocol, String *buffer)
 {
+#ifdef pio_tp
 printf("is\n");
+#endif
   bool result= false;                       // Will be set if null_value == 0
   enum_field_types f_type;
+#ifdef pio_tp
 printf("ft %d\n",(int)field_type());
+#endif
   switch ((f_type=field_type())) {
   default:
   case MYSQL_TYPE_NULL:
@@ -7610,6 +7619,9 @@ printf("ft %d\n",(int)field_type());
 
 bool Item::pio_save(Protocol *protocol, String *buffer)
 {
+#ifdef pio_tp
+printf("is\n");
+#endif
   bool result= false;                       // Will be set if null_value == 0
   enum_field_types f_type;
 	pio3_item->f_type = field_type();
@@ -7633,7 +7645,7 @@ bool Item::pio_save(Protocol *protocol, String *buffer)
   {
 //    String *res;
 //    if ((res=val_str(buffer)))
-	pio3_item->item_value.res = val_str(pio3_item->str);
+	pio3_item->item_value.res = val_str(&pio3_item->str);
 	if (pio3_item->item_value.res)
 		pio3_item->pft = 1;
 //      result= protocol->store(res->ptr(),res->length(),res->charset());
@@ -7946,12 +7958,17 @@ Item* Item_field::item_field_by_name_transformer(uchar *arg)
 
 bool Item_field::send(Protocol *protocol, String *buffer)
 {
+#ifdef pio_tp
 printf("ifs\n");
+#endif
   return protocol->store(result_field);
 }
 
 bool Item_field::pio_save(Protocol *protocol, String *buffer)
 {
+#ifdef pio_tp
+printf("ifs\n");
+#endif
 	result_field->pio3_save = true;
 	result_field->pio3_item = pio3_item;
 bool rv = protocol->store(result_field);
@@ -8548,6 +8565,7 @@ printf ("irs\n");
 
 bool Item_ref::pio_save(Protocol *prot, String *tmp)
 {
+printf("irs\n");
   if (result_field)
 {
 bool rv;
@@ -9080,7 +9098,9 @@ bool Item_direct_view_ref::is_null()
 
 bool Item_direct_view_ref::send(Protocol *prot, String *tmp)
 {
+#ifdef pio_tp
 printf ("idvrs\n");
+#endif
   if (has_null_row())
     return prot->store_null();
   return super::send(prot, tmp);
@@ -9088,6 +9108,9 @@ printf ("idvrs\n");
 
 bool Item_direct_view_ref::pio_save(Protocol *prot, String *tmp)
 {
+#ifdef pio_tp
+printf ("idvrs\n");
+#endif
   if (has_null_row())
 {
 //    return prot->store_null();

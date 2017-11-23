@@ -1063,8 +1063,8 @@ public:
   virtual bool send(Protocol *protocol, String *str);
 
 //cgmin
-bool pio_save(Protocol *protocol, String *str); // protocol??
-//virtual bool pio_send(Protocol *protocol, String *str); // str??
+virtual bool pio_save(Protocol *protocol, String *str); // protocol??
+//bool pio_send(Protocol *protocol, String *str); // str??
 pio3_item_t *pio3_item;
 
 
@@ -3067,7 +3067,7 @@ protected:
 public:
 
 //cgmin
-bool pio_save(Protocol *protocol, String *str); // protocol??
+ bool pio_save(Protocol *protocol, String *str); // protocol??
 
 
   Item_null()

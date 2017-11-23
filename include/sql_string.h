@@ -147,6 +147,7 @@ class String
   size_t m_length;
   const CHARSET_INFO *m_charset;
   uint32 m_alloced_length; // should be size_t, but kept uint32 for size reasons
+public: //!!!
   bool m_is_alloced;
 public:
   String()

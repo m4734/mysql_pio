@@ -1718,8 +1718,8 @@ pio3_item->pft = 0;
 return false;
 //    return protocol->store_null();
 }
-  char buff[MAX_FIELD_WIDTH];
-  String str(buff, sizeof(buff), &my_charset_bin);
+//  char buff[MAX_FIELD_WIDTH];
+//  String str(buff, sizeof(buff), &my_charset_bin);
 /*
 #ifndef DBUG_OFF
   my_bitmap_map *old_map= 0;
@@ -1735,8 +1735,57 @@ return false;
 #endif
 */
 //  return res ? protocol->store(res) : protocol->store_null();
+//printf("ttt0\n");
+pio3_item->cs = my_charset_bin;
 
-pio3_item->item_value.res = val_str(pio3_item->str);
+pio3_item->str.m_is_alloced = false; // !!
+/*
+if(pio3_item->str.is_alloced())
+{
+int i;
+	printf("alloc\n");
+for (i=0;i<pio3_item->item_value.res->length();++i)
+	printf("%d ",(int)pio3_item->item_value.res->ptr()[i]);
+printf("\n---------\n");
+}
+*/
+pio3_item->str.set(pio3_item->buffer,sizeof(pio3_item->buffer),&pio3_item->cs);
+//printf("ttt1\n");
+pio3_item->item_value.res = val_str(&pio3_item->str);
+//printf("ttt1.5\n");
+if (pio3_item->item_value.res->ptr() != pio3_item->buffer)
+{
+//printf("ttt2\n");
+	int j,len;
+	const char* tp = pio3_item->item_value.res->ptr();
+	len = pio3_item->item_value.res->length();
+	
+	for (j=0;j<len;++j)
+		pio3_item->buffer[j] = tp[j];
+//printf("ttt3\n");
+//	pio3_item->item_value.res->ptr() = pio3_item->buffer;
+	pio3_item->item_value.res->set(pio3_item->buffer,len,&pio3_item->cs);
+//	pio3_item->item_value.res->set(pio3_item->buffer,sizeof(pio3_item->buffer),&pio3_item->cs);
+/*
+	pio3_item->str.copy(*pio3_item->item_value.res);
+	pio3_item->item_value.res = &pio3_item->str;
+*/
+//pio3_item->str.set((char*)NULL,0,(CHARSET_INFO*)NULL);
+//printf("ttt4\n");
+//if (pio3_item->str.is_alloced())
+//	printf("alloc\n");
+}
+
+#ifdef pio_tp
+int i;
+printf("\n---pio save protocol text field send text buffer test--- %d\n",pio3_item->pio_t);
+for (i=0;i<10;++i)
+	printf("%d ",(int)pio3_item->buffer[i]);
+printf("\n---------\n");
+for (i=0;i<pio3_item->item_value.res->length();++i)
+	printf("%d ",(int)pio3_item->item_value.res->ptr()[i]);
+printf("\n---------\n");
+#endif
 if (pio3_item->item_value.res)
 	pio3_item->pft = 10;
 else
@@ -1774,7 +1823,10 @@ if (pio3_save)
 		pio3_item->pft = 0;
 		return false;
 	}
-	pio3_item->item_value.res = val_str(pio3_item->str);
+printf("fs<><><>\n");
+	pio3_item->cs = *charset();
+	pio3_item->str.set(pio3_item->buffer,sizeof(pio3_item->buffer),&pio3_item->cs);
+	pio3_item->item_value.res = val_str(&pio3_item->str);
 	if (pio3_item->item_value.res)
 		pio3_item->pft = 10;
 	else

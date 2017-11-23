@@ -534,7 +534,9 @@ static bool send_server_handshake_packet(MPVIO_EXT *mpvio,
   char *buff= (char *) my_alloca(1 + SERVER_VERSION_LENGTH + data_len + 64);
   char scramble_buf[SCRAMBLE_LENGTH];
   char *end= buff;
+#ifdef pio_tn
 printf("send_server_handshake_packet s\n");
+#endif
   DBUG_ENTER("send_server_handshake_packet");
   *end++= protocol_version;
 
@@ -620,9 +622,9 @@ printf("send_server_handshake_packet s\n");
 
   int res= protocol->write((uchar*) buff, (size_t) (end - buff + 1)) ||
            protocol->flush_net();
-
+#ifdef pio_tp
 printf("send_server_handshake_packet f\n");
-
+#endif
   DBUG_RETURN (res);
 }
 

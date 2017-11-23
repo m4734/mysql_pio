@@ -74,7 +74,7 @@ typedef struct st_net {
   unsigned long remain_in_buf,length, buf_length, where_b;
   unsigned long max_packet,max_packet_size;
   unsigned int pkt_nr,compress_pkt_nr;
-unsigned int* pio_pkt_nr;
+unsigned int pio_pkt_nr;
   unsigned int write_timeout, read_timeout, retry_count;
   int fcntl;
   unsigned int *return_status;

@@ -1309,7 +1309,7 @@ if (join->thd->pio3_on)
 }
 
 
-
+int cnt = 0;
   while (rc == NESTED_LOOP_OK && join->return_tab >= qep_tab_idx)
   {
 //printf("sub_select l s\n");
@@ -1357,7 +1357,9 @@ gettimeofday(&ttt,NULL);
 //printf("ejr %ld ",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec));
 s2+=(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec);
 //printf("sub_select l e\n");
-
+++cnt;
+if (cnt % 10000 == 0)
+	printf("%d\n",cnt);
   }
 //gettimeofday(&ttt,NULL);
 //printf("evaluate_join_record %ld --- %ld:%ld-%ld:%ld\n",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec),ttt.tv_sec,ttt.tv_usec,ttt2.tv_sec,ttt2.tv_usec);

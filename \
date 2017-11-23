@@ -2182,7 +2182,7 @@ NET pio3_net[MAX_PIO];
 String pio3_packet[MAX_PIO];
 String pio3_convert_buffer[MAX_PIO];
 bool pio3_run[MAX_PIO];
-bool pio3_exit[MAX_PIO];
+bool pio3_exit;
 pthread_t pio3_t[MAX_PIO];
   struct st_mysql_data *pio3_cur_data[MAX_PIO];
 
@@ -2195,7 +2195,6 @@ List<pio3_item_t> pio3_item[MAX_PIO];
 //thread
 pthread_mutex_t pio3_mutex[MAX_PIO];
 pthread_cond_t pio3_cond[MAX_PIO];
-pthread_spinlock_t pio3_spin[MAX_PIO];
 /*
 struct pio3_data_t
 {
@@ -2220,9 +2219,99 @@ void pio3_init_net(Vio *vio)
 		pio3_protocol[i].init_net(vio);
 }
 
-void pio3_init();
-void pio3_end();
-bool pio_send(int i);
+void pio3_init()
+{
+#ifdef pio_tp
+printf("pio3_init s\n");
+#endif
+pio3_exit = false;
+	int i;
+	for (i=0;i<MAX_PIO;i++)
+	{
+//pio3_protocol[i].init_net(net.vio);
+
+//		pio3_net[i].pio_pkt_nr = &net.pkt_nr; // temp
+
+pio3_run[i] = true;
+printf("true\n");
+
+/*
+		pthread_mutex_init(&pio3_mutex[i],NULL);
+		pthread_cond_init(&pio3_cond[i],NULL);
+		pio3_run[i] = true;
+*/		
+		pio3_data_t* data;
+		data = (pio3_data_t*)malloc(sizeof(pio3_data_t));
+		data->thd = this;
+		data->pio_t = i;
+		
+		pthread_create(&pio3_t[i],NULL,pio3_thd_pro,(void*)(data));
+printf("bw1\n");
+while (pio3_run[i] == true)
+//	usleep(0);
+	i = i;
+printf("aw1\n");
+//	printf("dr true\n");
+//	usleep(1);
+	}
+/*
+	while(1)
+	{
+		for (i=0;i<MAX_PIO;i++)
+		{
+			if (pio3_run[i])
+				break;
+		}
+		if (i>=MAX_PIO)
+			break;
+		usleep(1);
+	}
+*/
+#ifdef pio_tp
+printf("pio3_init e\n");
+#endif
+}
+
+void pio3_end()
+{
+#ifdef pio_tp
+printf("pio3_end s\n");
+#endif
+//scanf("%d");
+//pio3_exit = true;
+	int i;
+	for (i=0;i<MAX_PIO;++i)
+	{
+		while(pio3_run[i])
+//			usleep(0);
+			i = i;
+
+//		pio3_run[i] = false;
+//		pthread_cond_signal(&pio3_cond[i]);
+//		pthread_join(pio3_t[i],NULL);
+}
+pio3_exit = true;
+for (i=0;i<MAX_PIO;++i)
+{
+
+//pio3_run[i] = true;
+while(pio3_run[i])
+//	usleep(0);
+	i = i;
+#ifdef pio_tp
+printf("pio3 net_flush s\n");
+#endif
+net_flush(&pio3_net[i]);
+#ifdef pio_tp
+printf("pio3 net_flush e\n");
+#endif
+//pio3_protocol[i].end_net();
+//net.pkt_nr = pio3_net[i].pkt_nr; // temp
+	}
+#ifdef pio_tp
+printf("pio3_end f\n");
+#endif
+}
 
 void end_net_pio()
 {
@@ -4710,6 +4799,7 @@ private:
 //cgmin
 public:
 	bool pio3_on;
+//	bool tp;
 };
 
 /**
@@ -4904,8 +4994,7 @@ public:
 //cgmin
 //	virtual bool send_data_pio(List<Item> &items)=0;
 bool send_data_pio(List<Item> &items);
-//bool pio_send(THD* thd,int i);
-//bool pio_send(int i);
+bool pio_send(int i);
 
   virtual bool initialize_tables (JOIN *join=0) { return 0; }
   virtual void send_error(uint errcode,const char *err)

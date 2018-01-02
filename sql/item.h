@@ -766,8 +766,6 @@ protected:
 
 public:
 
-//cgmin
-
   static void *operator new(size_t size) throw ()
   { return sql_alloc(size); }
   static void *operator new(size_t size, MEM_ROOT *mem_root) throw ()

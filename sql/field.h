@@ -250,7 +250,7 @@ DBUG_ASSERT(!table || (!table->read_set || \
 DBUG_ASSERT(!table || (!table->write_set || \
                        bitmap_is_set(table->write_set, field_index)))
 //cgmin
-struct item_value_t
+union item_value_t
 {
 	String *res;
 //	char buffer[MAX_FIELD_WIDTH];
@@ -285,6 +285,9 @@ struct pio3_item_t
 // 10 string2 / 11 decimal / 12 float2 / 13 double2 / 14 date2
 
 	int pio_t;//debug
+	int s8;
+
+	Field* field;
 };
 
 /**

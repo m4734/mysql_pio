@@ -289,7 +289,6 @@ my_bool my_net_write(NET *net, const uchar *packet, size_t len)
 {
   uchar buff[NET_HEADER_SIZE];
   int rc;
-
   if (unlikely(!net->vio)) /* nowhere to write */
 {
 #ifdef pio_tp
@@ -317,6 +316,8 @@ printf("my_net_write - no vio\n");
     buff[3]= (uchar) net->pkt_nr++;
 //    buff[3]= (uchar) (*net->pio_pkt_nr)++; // FAA?
 //	buff[3]= (uchar) net->pio_pkt_nr;
+
+printf("too big\n");
 
     if (net_write_buff(net, buff, NET_HEADER_SIZE) ||
         net_write_buff(net, packet, z_size))
@@ -466,12 +467,19 @@ printf("net_write_buff s\n");
   if (net->compress && net->max_packet > MAX_PACKET_LENGTH)
     left_length= (ulong) (MAX_PACKET_LENGTH - (net->write_pos - net->buff));
   else
+{
+//	if (len > net->buff_end-net->write_pos)
+//		net_flush(net);
     left_length= (ulong) (net->buff_end - net->write_pos);
+}
 #ifdef pio_tp
+
+printf("pp s\n");
 int i;
 for (i=0;i<len;++i)
 	printf("%d ",packet[i]);
-printf("\n");
+printf("\npp f\n");
+
 #endif
 #ifdef DEBUG_DATA_PACKETS
   DBUG_DUMP("data", packet, len);
@@ -481,6 +489,9 @@ printf("\n");
     if (net->write_pos != net->buff)
     {
       /* Fill up already used packet and write it */
+
+
+
       memcpy(net->write_pos, packet, left_length);
       if (net_write_packet(net, net->buff,
                            (size_t) (net->write_pos - net->buff) + left_length))
@@ -488,6 +499,25 @@ printf("\n");
       net->write_pos= net->buff;
       packet+= left_length;
       len-= left_length;
+
+
+
+
+//cgmin
+
+/*
+      if (net_write_packet(net, net->buff,
+                           (size_t) (net->write_pos - net->buff)))
+        return 1;
+      net->write_pos= net->buff;
+*/
+
+
+//      packet+= left_length;
+//      len-= left_length;
+
+
+
     }
     if (net->compress)
     {
@@ -716,6 +746,9 @@ printf("net_read_raw_loop count %d /",(int)count);
   unsigned int retry_count= 0;
   uchar *buf= net->buff + net->where_b;
 
+	int c2 = count;
+	uchar *buf2 = buf;
+
   while (count)
   {
     size_t recvcnt= vio_read(net->vio, buf, count);
@@ -744,6 +777,12 @@ printf("net_read_raw_loop count %d /",(int)count);
   }
 #ifdef pio_tp
 printf("%d\n",(int)count);
+
+int i;
+for (i=0;i<c2;++i)
+	printf("%d ",buf2[i]);
+printf("\n");
+
 #endif
   /* On failure, propagate the error code. */
   if (count)
@@ -831,6 +870,20 @@ static my_bool net_read_packet_header(NET *net)
   */
   if (pkt_nr != (uchar) net->pkt_nr)
   {
+
+
+
+//cgmin
+#ifdef pio_tp
+printf("read packet number error! but i don't care\n");
+#endif
+pkt_nr = net->pkt_nr;
+net->pkt_nr++;
+return FALSE;
+
+
+
+
     /* Not a NET error on the client. XXX: why? */
 #if defined(MYSQL_SERVER)
     my_error(ER_NET_PACKETS_OUT_OF_ORDER, MYF(0));

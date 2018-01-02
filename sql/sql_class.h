@@ -185,7 +185,8 @@ enum enum_binlog_format {
 
 
 //cgmin
-#define MAX_PIO 1
+#define MAX_PIO 2
+#define MAX_PIO_QUEUE 10
 
 //#define pio_tp
 
@@ -2171,6 +2172,9 @@ private:
 //  NET     net;                          // client connection descriptor
   String  packet;                       // dynamic buffer for network I/O
 
+
+bool pio3_run[MAX_PIO];
+
 public:
 
 NET net;
@@ -2181,8 +2185,8 @@ NET net;
 NET pio3_net[MAX_PIO];
 String pio3_packet[MAX_PIO];
 String pio3_convert_buffer[MAX_PIO];
-bool pio3_run[MAX_PIO];
-bool pio3_exit[MAX_PIO];
+//bool pio3_run[MAX_PIO];
+//bool pio3_exit[MAX_PIO];
 pthread_t pio3_t[MAX_PIO];
   struct st_mysql_data *pio3_cur_data[MAX_PIO];
 
@@ -2190,8 +2194,37 @@ pthread_t pio3_t[MAX_PIO];
 //Protocol_binary pio3_procotol[MAX_PIO];
 //List<Item> pio3_items[MAX_PIO];
 
-List<pio3_item_t> pio3_item[MAX_PIO];
+pio3_item_t pio3_item[MAX_PIO][20][MAX_PIO_QUEUE]; // MAX FIELD NUM?
+int pio3_itemc[MAX_PIO][MAX_PIO_QUEUE];
+volatile int pio3_item_s[MAX_PIO],pio3_item_e[MAX_PIO];
+int pio3_ii;
+int pio3_item_pkt_nr[MAX_PIO][MAX_PIO_QUEUE];
 
+volatile bool pio3_exit[MAX_PIO];
+/*
+int get_pio3_item_s(int i)
+{
+	return pio3_item_s[i];
+}
+int get_pio3_item_e(int i)
+{
+	return pio3_item_e[i];
+}
+void pio3_item_s_add(int i)
+{
+	if (pio3_item_s[i] == MAX_PIO_QUEUE-1)
+		pio3_item_s[i] = 0;
+	else
+		++pio3_item_s[i];
+}
+void pio3_item_e_add(int i)
+{
+	if (pio3_item_e[i] == MAX_PIO_QUEUE-1)
+		pio3_item_e[i] = 0;
+	else
+		++pio3_item_e[i];
+}
+*/
 //thread
 pthread_mutex_t pio3_mutex[MAX_PIO];
 pthread_cond_t pio3_cond[MAX_PIO];
@@ -2205,6 +2238,31 @@ struct pio3_data_t
 */
 
 //void* pio3_thd_pro(void* data);
+CHARSET_INFO pio3_cs;
+void pio3_item_init()
+{
+	#ifdef pio_tp
+		printf("pio3_item_init\n");
+	#endif
+	pio3_cs = my_charset_bin;
+	pio3_ii = 0;
+	
+	int i,j,k;
+	for (i=0;i<MAX_PIO;i++)
+	{
+pio3_item_s[i] = 0;
+pio3_item_e[i] = 0;
+		for (j=0;j<20;j++)
+		{
+			for (k=0;k<MAX_PIO_QUEUE;k++)
+			{
+			pio3_item[i][j][k].pio_t = i;
+			pio3_item[i][j][k].cs = pio3_cs;
+			pio3_item[i][j][k].str.set(pio3_item[i][j][k].buffer,sizeof(pio3_item[i][j][k].buffer),&pio3_item[i][j][k].cs);
+			}
+		}
+	}
+}
 
 void pio3_protocol_init()
 {
@@ -4710,6 +4768,12 @@ private:
 //cgmin
 public:
 	bool pio3_on;
+	bool get_pio3_run(int i);
+//	bool get_pio3_exit(int i);
+	void set_pio3_run(int i,bool v);
+//	void set_pio3_exit(int i,bool v);
+	int s5,s6,s7,s8;
+	int s10,s11;
 };
 
 /**

@@ -38,6 +38,8 @@
 # include <sys/ioctl.h>
 #endif
 
+//#define pio_tp
+
 int vio_errno(Vio *vio MY_ATTRIBUTE((unused)))
 {
   /* These transport types are not Winsock based. */

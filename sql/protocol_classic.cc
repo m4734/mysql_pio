@@ -632,7 +632,10 @@ printf("protocol pio init %d\n",i);
 
   m_thd= thd_arg;
   packet= &m_thd->pio3_packet[i];
+packet->alloc(m_thd->variables.net_buffer_length);
   convert= &m_thd->pio3_convert_buffer[i];
+convert->alloc(m_thd->variables.net_buffer_length);
+
 #ifndef DBUG_OFF
   field_types= 0;
 #endif
@@ -917,6 +920,7 @@ int Protocol_classic::read_packet()
 bool Protocol_classic::parse_packet(union COM_DATA *data,
                                     enum_server_command cmd)
 {
+printf("parse_packet cmd : %d\n",cmd);
   switch(cmd)
   {
   case COM_INIT_DB:
@@ -1598,7 +1602,6 @@ bool Protocol_text::store(double from, uint32 decimals, String *buffer)
 
 bool Protocol_text::store(Proto_field *field)
 {
-//printf("ts0---\n");
   return field->send_text(this);
 }
 
@@ -2257,7 +2260,8 @@ bool Protocol_pio::store_null()
 	if (m_thd->get_protocol()->type() == PROTOCOL_BINARY)
 		return Protocol_binary::store(field);
 	else
-		return Protocol_text::store(field);
+		field->send_text(this);
+//		return Protocol_text::store(field);
 
 }
   bool Protocol_pio::store(const char *from, size_t length, const CHARSET_INFO *cs)

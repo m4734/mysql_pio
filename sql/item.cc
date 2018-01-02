@@ -652,6 +652,7 @@ Item::Item(THD *thd, Item *item):
   with_stored_program(item->with_stored_program),
   tables_locked_cache(item->tables_locked_cache),
   is_parser_item(false)
+, pio3_item(NULL) //cgmin
 {
 #ifndef DBUG_OFF
   DBUG_ASSERT(item->contextualized);
@@ -7959,7 +7960,7 @@ Item* Item_field::item_field_by_name_transformer(uchar *arg)
 bool Item_field::send(Protocol *protocol, String *buffer)
 {
 #ifdef pio_tp
-printf("ifs\n");
+//printf("ifs\n");
 #endif
   return protocol->store(result_field);
 }
@@ -7967,14 +7968,27 @@ printf("ifs\n");
 bool Item_field::pio_save(Protocol *protocol, String *buffer)
 {
 #ifdef pio_tp
-printf("ifs\n");
+//printf("ifs\n");
 #endif
+/*
 	result_field->pio3_save = true;
 	result_field->pio3_item = pio3_item;
-bool rv = protocol->store(result_field);
-result_field->pio3_save = false;
-return rv;
+//bool rv = protocol->store(result_field);
+//result_field->pio3_save = false;
+//return rv;
+	return result_field->send_text(protocol);
+*/
 //  return protocol->store(result_field);
+
+//no call
+pio3_item->str.set((char*)NULL,(size_t)0,(const CHARSET_INFO*)&my_charset_bin);
+pio3_item->item_value.res = &pio3_item->str;
+if (pio3_item->item_value.res)
+	pio3_item->pft = 10;
+else
+	pio3_item->pft = 0;
+return false;
+
 }
 
 void Item_field::update_null_value() 

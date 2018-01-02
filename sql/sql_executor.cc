@@ -1294,7 +1294,12 @@ sub_select(JOIN *join, QEP_TAB *const qep_tab,bool end_of_records)
 
 int s1=0,s2=0,s0=0;
 struct timeval ttt,ttt2;
-
+join->thd->s5 = 0;
+join->thd->s6 = 0;
+join->thd->s7 = 0;
+join->thd->s8 = 0;
+join->thd->s10 = 0;
+join->thd->s11 = 0;
 //gettimeofday(&ttt2,NULL);
 
 
@@ -1306,10 +1311,12 @@ if (join->thd->pio3_on)
 {
 	join->thd->get_protocol_classic()->flush_net();
 	join->thd->pio3_init();
+//	join->thd->pio3_item_init();
 }
 
-
+#ifdef pio_tp
 int cnt = 0;
+#endif
   while (rc == NESTED_LOOP_OK && join->return_tab >= qep_tab_idx)
   {
 //printf("sub_select l s\n");
@@ -1357,16 +1364,22 @@ gettimeofday(&ttt,NULL);
 //printf("ejr %ld ",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec));
 s2+=(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec);
 //printf("sub_select l e\n");
+#ifdef pio_tp
 ++cnt;
 if (cnt % 10000 == 0)
 	printf("%d\n",cnt);
+#endif
   }
 //gettimeofday(&ttt,NULL);
 //printf("evaluate_join_record %ld --- %ld:%ld-%ld:%ld\n",(ttt.tv_sec-ttt2.tv_sec)*1000000+(ttt.tv_usec-ttt2.tv_usec),ttt.tv_sec,ttt.tv_usec,ttt2.tv_sec,ttt2.tv_usec);
 printf("s0 %d\ns1 %d\ns2 %d\n",s0,s1,s2);
 
-
-
+printf("save_pio %d\n",join->thd->s5);
+printf("send_pio %d\n",join->thd->s6);
+printf("core_send_pio %d\n",join->thd->s7);
+printf("core_save_pio %d\n",join->thd->s8);
+printf("save while %d\n",join->thd->s10);
+printf("send while %d / %d\n",join->thd->s11,MAX_PIO);
 // pio3 destroy
 //net_flush(&join->thd->pio3_net[0]); ???
 if (join->thd->pio3_on)

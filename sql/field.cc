@@ -45,6 +45,8 @@
 #include <algorithm>
 #include <memory>                        // auto_ptr
 
+#include<sys/time.h>
+
 using std::max;
 using std::min;
 
@@ -1566,6 +1568,7 @@ Field::Field(uchar *ptr_arg,uint32 length_arg,uchar *null_ptr_arg,
    is_created_from_null_item(FALSE), m_indexed(false),
    m_warnings_pushed(0),
    gcol_info(0), stored_in_db(TRUE)
+, pio3_save(false) //cgmin
 
 {
   flags=real_maybe_null() ? 0: NOT_NULL_FLAG;
@@ -1712,6 +1715,9 @@ bool Field::send_text(Protocol *protocol)
 //cgmin
 if (pio3_save)
 {
+struct timeval ttt,ttt2;
+//gettimeofday(&ttt,NULL);
+pio3_save = false;
   if (is_null())
 {
 pio3_item->pft = 0;
@@ -1736,9 +1742,10 @@ return false;
 */
 //  return res ? protocol->store(res) : protocol->store_null();
 //printf("ttt0\n");
-pio3_item->cs = my_charset_bin;
 
-pio3_item->str.m_is_alloced = false; // !!
+
+//pio3_item->str.m_is_alloced = false; // !!
+
 /*
 if(pio3_item->str.is_alloced())
 {
@@ -1749,42 +1756,125 @@ for (i=0;i<pio3_item->item_value.res->length();++i)
 printf("\n---------\n");
 }
 */
+
+
+
+//pio3_item->cs = my_charset_bin;
+
+//pio3_item->str.set_charset(&pio3_item->cs);
+/*
+if (pio3_item->str.ptr() != pio3_item->buffer)
+{
+printf("!-\n");
+pio3_item->cs = my_charset_bin;
 pio3_item->str.set(pio3_item->buffer,sizeof(pio3_item->buffer),&pio3_item->cs);
-//printf("ttt1\n");
+//	pio3_item->str.set(pio3_item->buffer,sizeof(pio3_item->buffer),&my_charset_bin);
+}
+else
+printf("++\n");
+*/
+
+//pio3_item->str.set(pio3_item->buffer,sizeof(pio3_item->buffer),&pio3_item->cs);
+
+/*
+// no copy
+//gettimeofday(&ttt,NULL);
+pio3_item->str.set(pio3_item->buffer,sizeof(pio3_item->buffer),&my_charset_bin);
+pio3_item->item_value.res= val_str(&pio3_item->str);
+*/
+
+
+// null
+gettimeofday(&ttt,NULL);
+pio3_item->str.set((char*)NULL,(size_t)0,(const CHARSET_INFO*)&my_charset_bin);
+pio3_item->item_value.res = &pio3_item->str;
+
+
+//memcpy
+/*
 pio3_item->item_value.res = val_str(&pio3_item->str);
-//printf("ttt1.5\n");
+memcpy(pio3_item->buffer,pio3_item->item_value.res->ptr(),pio3_item->item_value.res->length());
+pio3_item->str.set(pio3_item->buffer,pio3_item->item_value.res->length(),&my_charset_bin);
+pio3_item->item_value.res=&pio3_item->str;
+*/
+
+/*
 if (pio3_item->item_value.res->ptr() != pio3_item->buffer)
 {
-//printf("ttt2\n");
-	int j,len;
-	const char* tp = pio3_item->item_value.res->ptr();
-	len = pio3_item->item_value.res->length();
-	
-	for (j=0;j<len;++j)
-		pio3_item->buffer[j] = tp[j];
-//printf("ttt3\n");
-//	pio3_item->item_value.res->ptr() = pio3_item->buffer;
-	pio3_item->item_value.res->set(pio3_item->buffer,len,&pio3_item->cs);
-//	pio3_item->item_value.res->set(pio3_item->buffer,sizeof(pio3_item->buffer),&pio3_item->cs);
-/*
-	pio3_item->str.copy(*pio3_item->item_value.res);
-	pio3_item->item_value.res = &pio3_item->str;
+//printf("memcpy\n");
+memcpy(pio3_item->buffer,pio3_item->item_value.res->ptr(),pio3_item->item_value.res->length());
+//pio3_item->str.set(pio3_item->buffer,pio3_item->item_value.res->length(),&pio3_item->cs);
+pio3_item->str.set(pio3_item->buffer,pio3_item->item_value.res->length(),&my_charset_bin);
+pio3_item->item_value.res=&pio3_item->str;
+}
 */
+
+//pio3_item->cs = my_charset_bin;
+/*
+pio3_item->str.set(pio3_item->buffer,sizeof(pio3_item->buffer),&pio3_item->cs);
+
+pio3_item->item_value.res = val_str(&pio3_item->str);
+*/
+
+
+//char buff[MAX_FIELD_WIDTH];
+//String str(buff, sizeof(buff), &my_charset_bin);
+//String *res = val_str(&str);
+//pio3_item->item_value.res = res;
+
+//	pio3_item->item_value.res->set(pio3_item->buffer,pio3_item->item_value.res->length(),&pio3_item->cs);
+//pio3_item->field = this;
+gettimeofday(&ttt2,NULL);
+
+pio3_item->s8=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
+
+//	pio3_item->item_value.res->set(pio3_item->buffer,pio3_item->item_value.res->length(),&my_charset_bin);
+
+//	pio3_item->item_value.res->ptr() = ptr;
+
+
+/*
+//if (pio3_item->item_value.res->ptr() != pio3_item->buffer)
+//{
+//printf("memcpy\n");
+//	int len;
+//	const char* tp = pio3_item->item_value.res->ptr();
+	uchar *tp = ptr;
+//	len = pio3_item->item_value.res->length();
+	uint32 len = char_length();	
+	memcpy(pio3_item->buffer,tp,len);
+	pio3_item->buffer[len] = 0;	
+
+//	pio3_item->item_value.res->ptr() = pio3_item->buffer;
+//	pio3_item->item_value.res->set(pio3_item->buffer,len,&pio3_item->cs);
+//	pio3_item->item_value.res->set(pio3_item->buffer,sizeof(pio3_item->buffer),&pio3_item->cs);
+
+//	pio3_item->str.copy(*pio3_item->item_value.res);
+	pio3_item->str.set(pio3_item->buffer,len,&my_charset_bin);
+	pio3_item->item_value.res = &pio3_item->str;
+
 //pio3_item->str.set((char*)NULL,0,(CHARSET_INFO*)NULL);
-//printf("ttt4\n");
 //if (pio3_item->str.is_alloced())
 //	printf("alloc\n");
-}
+//}
+*/
+
 
 #ifdef pio_tp
+/*
 int i;
 printf("\n---pio save protocol text field send text buffer test--- %d\n",pio3_item->pio_t);
-for (i=0;i<10;++i)
-	printf("%d ",(int)pio3_item->buffer[i]);
-printf("\n---------\n");
 for (i=0;i<pio3_item->item_value.res->length();++i)
 	printf("%d ",(int)pio3_item->item_value.res->ptr()[i]);
 printf("\n---------\n");
+
+
+for (i=0;i<pio3_item->item_value.res->length();++i)
+	printf("%c ",(int)pio3_item->item_value.res->ptr()[i]);
+printf("\n---------\n");
+*/
+
+
 #endif
 if (pio3_item->item_value.res)
 	pio3_item->pft = 10;

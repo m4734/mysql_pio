@@ -23,6 +23,8 @@
 **
 *****************************************************************************/
 
+#include<sys/time.h>
+
 #include "sql_class.h"
 
 #include "mysys_err.h"                       // EE_DELETE
@@ -59,6 +61,8 @@
 #include "mysql/psi/mysql_idle.h"
 
 #include "mysql/psi/mysql_ps.h"
+
+#define pio_tt
 
 using std::min;
 using std::max;
@@ -1225,7 +1229,10 @@ pio3_on(true) //cgmin
 
 //cgmin
 if (pio3_on)
+{
 	pio3_protocol_init();
+	pio3_item_init();
+}
 
 
   tablespace_op= false;
@@ -2728,7 +2735,6 @@ printf("send_data s\n");
 
   protocol->start_row();
   if (thd->send_result_set_row(&items))
-//if (thd->send_result_set_row(&items2))
   {
     protocol->abort_row();
     DBUG_RETURN(TRUE);
@@ -2736,13 +2742,6 @@ printf("send_data s\n");
 
   thd->inc_sent_row_count(1);
 	bool rv = protocol->end_row();
-/*
-while((item = items2.pop())!=0)
-{
-	item->delete_self();
-printf("2");
-}
-*/
 #ifdef pio_tp
 printf("send_data f\n");
 #endif
@@ -2761,6 +2760,7 @@ return send_data(items);
 //bool pio_send(THD* thd,int i);
 bool Query_result::send_data_pio(List<Item> &items)
 {
+struct timeval ttt,ttt2;
 #ifdef pio_tp
 printf("send_data_pio s\n");
 #endif
@@ -2778,12 +2778,18 @@ printf("send_data_pio s\n");
   ha_release_temporary_latches(thd);
 
 int i;
+#ifdef pio_tt
+gettimeofday(&ttt,NULL);
+#endif
+
+
 /*
 while(1)
 {
 for (i=0;i<MAX_PIO;++i)
 {
-	if (thd->pio3_run[i] == false)
+//	if (thd->pio3_run[i] == false)
+	if (thd->get_pio3_run(i) == false)
 		break;
 }
 	if (i<MAX_PIO)
@@ -2792,7 +2798,49 @@ for (i=0;i<MAX_PIO;++i)
 //	usleep(0);
 }
 */
-i = 0;
+
+//printf("enqueue s\n");
+while(1)
+{
+for (i=thd->pio3_ii;i<MAX_PIO;++i)
+{
+//	if ((thd->pio3_item_e[i] + 1 == thd->pio3_item_s[i] || (thd->pio3_item_s[i] == 0 && thd->pio3_item_e[i] == 9)) == false)
+	if (((thd->pio3_item_e[i] + 1 == thd->pio3_item_s[i]) || (thd->pio3_item_s[i] == 0 && thd->pio3_item_e[i] == MAX_PIO_QUEUE-1)) == false)
+		break;
+}
+	if (i < MAX_PIO)
+		break;
+
+for (i=0;i<thd->pio3_ii;++i)
+{
+	if (((thd->pio3_item_e[i] + 1 == thd->pio3_item_s[i]) || (thd->pio3_item_s[i] == 0 && thd->pio3_item_e[i] == MAX_PIO_QUEUE-1)) == false)
+		break;
+}
+	if (i < thd->pio3_ii)
+		break;
+//usleep(1);
+//printf("s %d e %d\n",thd->get_pio3_item_s(0),thd->get_pio3_item_e(0));
+}
+
+if (i == MAX_PIO-1)
+	thd->pio3_ii = 0;
+else
+	thd->pio3_ii = i+1;
+//printf("enqueue f\n");
+
+#ifdef pio_tt
+gettimeofday(&ttt2,NULL);
+thd->s10+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
+#endif
+
+
+
+
+
+#ifdef pio_tt
+gettimeofday(&ttt,NULL);
+#endif
+//i = 0;
 
 /*
 while(1)
@@ -2817,15 +2865,19 @@ printf("sdp i %d\n",i);
 //thd->pio3_run[i] = true;
 
 
-thd->pio3_net[i].pkt_nr = thd->net.pkt_nr++;
+//thd->pio3_net[i].pkt_nr = thd->net.pkt_nr++;
+
+
+thd->pio3_item_pkt_nr[i][thd->pio3_item_e[i]] = thd->net.pkt_nr++;
+
 //thd->pio3_net[i].pio_pkt_nr = thd->net.pkt_nr++;
 
 //thd->pio3_items[i]=items; // problem
 
 //thd->pio3_items[i].
-List_iterator<Item> it(items);
+List_iterator_fast<Item> it(items);
 Item* item;
-
+thd->pio3_itemc[i][thd->pio3_item_e[i]]=0;
 
 //char buffer[MAX_FIELD_WIDTH];
 //String str_buffer(buffer, sizeof(buffer), &my_charset_bin);
@@ -2836,29 +2888,49 @@ while((item= it++))
 //	thd->pio3_items[i].push_back(item->clone_item());
 //	thd->pio3_items[i].push_back(Item_copy::create(item));
 
-pio3_item_t* item2 = (pio3_item_t*)malloc(sizeof(pio3_item_t));
+//pio3_item_t* item2 = (pio3_item_t*)malloc(sizeof(pio3_item_t));
+pio3_item_t* item2 = &thd->pio3_item[i][thd->pio3_itemc[i][thd->pio3_item_e[i]]][thd->pio3_item_e[i]];
+
+
 item->pio3_item = item2;
 //item2->field_types = item->field_type();
+/*
 item2->decimals = item->decimals;
 item2->null_value = item->null_value;
 item2->unsigned_flag = item->unsigned_flag;
-item2->pio_t = i;
+*/
+//item2->pio_t = i;
+#ifdef pio_tt
+item2->s8 = 0;
+#endif
+item2->field=NULL;
 //item2->cs = my_charset_bin;
 
 //item2->str.set(item2->buffer,sizeof(item2->buffer),&item2->cs);
 
 //item2->str = String(item2->buffer, sizeof(item2->buffer), &my_charset_bin);
 #ifdef pio_tp
-printf("pio_save s\n");
+//printf("pio_save s\n");
 #endif
+//gettimeofday(&ttt,NULL);
 item->pio_save(&thd->pio3_protocol[i],NULL);// &item2->str);
+//gettimeofday(&ttt2,NULL);
+//thd->s5+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
 #ifdef pio_tp
-printf("pio_save f\n");
+//printf("pio_save f\n");
 #endif
 
-	thd->pio3_item[i].push_back(item2);
-
+//	thd->pio3_item[i].push_back(item2);
+#ifdef pio_tt
+thd->s8+=item2->s8;
+#endif
+++thd->pio3_itemc[i][thd->pio3_item_e[i]];
 }
+
+
+#ifdef pio_tt
+gettimeofday(&ttt2,NULL);
+#endif
 //printf("\n");
 
 /*
@@ -2876,14 +2948,27 @@ printf("\n");
 //thd->pio3_protocol[i].packet = thd->pio3_packet[i];
 
 //pthread_spin_lock(&thd->pio3_spin[i]);
-thd->pio3_run[i] = true;
+//thd->pio3_run[i] = true;
+
+//thd->set_pio3_run(i,true);
+if (thd->pio3_item_e[i] == MAX_PIO_QUEUE-1)
+	thd->pio3_item_e[i] = 0;
+else
+	++thd->pio3_item_e[i];
+
+
 
 //pthread_spin_unlock(&thd->pio3_spin[i]);
 //pthread_mutex_unlock(&thd->pio3_mutex[i]);
 
 //pthread_mutex_unlock(&thd->pio3_mutex[i]);
-//pthread_cond_signal(&thd->pio3_cond[i]);
+//while(pthread_cond_signal(&thd->pio3_cond[i]) != 0);
 
+
+
+
+
+//while(thd->get_pio3_run(i));
 
 /*
 while(thd->pio3_run[i])
@@ -2891,7 +2976,11 @@ while(thd->pio3_run[i])
 usleep(1);
 }
 */
-
+/*
+while(thd->get_pio3_item_s(i) == ts)
+	usleep(1);
+*/
+/*
 thd->pio3_protocol[i].start_row();
 //  if (thd->send_result_set_row_pio(items,i)) //&
 	if (thd->pio_send(i))
@@ -2906,14 +2995,39 @@ return NULL;
 //???
 //protocol->end_row_pio();
 thd->pio3_protocol[i].end_row();
+*/
+
+
 
 #ifdef pio_tp
 printf("send_data_pio f\n");
 #endif
+#ifdef pio_tt
+thd->s5+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
+#endif
 return 0;
 }
 
-
+bool THD::get_pio3_run(int i)
+{
+	return pio3_run[i];
+}
+/*
+bool THD::get_pio3_exit(int i)
+{
+	return pio3_exit[i];
+}
+*/
+void THD::set_pio3_run(int i,bool v)
+{
+	pio3_run[i] = v;
+}
+/*
+void THD::set_pio3_exit(int i,bool v)
+{
+	pio3_exit[i] = v;
+}
+*/
 void THD::pio3_init()
 {
 #ifdef pio_tp
@@ -2928,15 +3042,15 @@ printf("pio3_init s\n");
 
 
 //pthread_spin_init(&pio3_spin[i],0);
-pthread_mutex_init(&pio3_mutex[i],NULL);
+//pthread_mutex_init(&pio3_mutex[i],NULL);
 
 pio3_run[i] = false;
 pio3_exit[i] = false;
-/*
-		pthread_mutex_init(&pio3_mutex[i],NULL);
-		pthread_cond_init(&pio3_cond[i],NULL);
-		pio3_run[i] = true;
-*/		
+
+//		pthread_mutex_init(&pio3_mutex[i],NULL);
+//		pthread_cond_init(&pio3_cond[i],NULL);
+//		pio3_run[i] = true;
+		
 		pio3_data_t* data;
 		data = (pio3_data_t*)malloc(sizeof(pio3_data_t));
 		data->thd = this;
@@ -2988,13 +3102,14 @@ printf("pio3_end s\n");
 
 
 //		pthread_spin_lock(&pio3_spin[i]);
-		pthread_mutex_lock(&pio3_mutex[i]);
-
+//		pthread_mutex_lock(&pio3_mutex[i]);
+		while(pio3_item_s[i] != pio3_item_e[i]);
+//			usleep(1);		
 		pio3_exit[i] = true;
-
+//		printf("%p\n",&pio3_exit[i]);
 
 //		pthread_spin_unlock(&pio3_spin[i]);
-		pthread_mutex_unlock(&pio3_mutex[i]);
+//		pthread_mutex_unlock(&pio3_mutex[i]);
 
 
 //		while(pio3_run[i])
@@ -3002,10 +3117,13 @@ printf("pio3_end s\n");
 //			i = i;
 
 //		pio3_run[i] = false;
-//		pthread_cond_signal(&pio3_cond[i]);
+//		printf("sig\n");
+//		while(pthread_cond_signal(&pio3_cond[i]) != 0);
+		printf("join\n");
 		pthread_join(pio3_t[i],NULL);
+		printf("eee\n");
 //		pthread_spin_destroy(&pio3_spin[i]);
-		pthread_mutex_destroy(&pio3_mutex[i]);
+//		pthread_mutex_destroy(&pio3_mutex[i]);
 }
 
 for (i=0;i<MAX_PIO;++i)
@@ -3033,7 +3151,9 @@ printf("pio3_end f\n");
 
 void *pio3_thd_pro(void* data)
 {
-return NULL;
+//return NULL;
+
+struct timeval ttt,ttt2;
 
 THD* thd = ((pio3_data_t*)data)->thd;
 int i = ((pio3_data_t*)data)->pio_t;
@@ -3075,23 +3195,59 @@ if (thd->pio3_exit)
 	return NULL;
 }
 */
+//bool *rp=&thd->pio3_run[i],*ep=&thd->pio3_exit[i];
 while(1)
 {
 
 
 //pthread_spin_lock(&thd->pio3_spin[i]);
-pthread_mutex_lock(&thd->pio3_mutex[i]);
+//pthread_mutex_lock(&thd->pio3_mutex[i]);
+//printf("w1\n");
+//while(thd->pio3_run[i] == false && thd->pio3_exit[i] == false);
+
+#ifdef pio_tt
+gettimeofday(&ttt,NULL);
+#endif
 
 
-if (thd->pio3_run[i])
+//while(thd->get_pio3_run(i) == false && thd->get_pio3_exit(i) == false);
+//printf("dequeue s\n");
+//while (thd->pio3_item_s[i] == thd->pio3_item_e[i] && thd->get_pio3_exit(i) == false);
+while (thd->pio3_item_s[i] == thd->pio3_item_e[i] && thd->pio3_exit[i] == false);
+//printf("dequeue f %d\n",thd->pio3_item_s[i]);
+#ifdef pio_tt
+gettimeofday(&ttt2,NULL);
+thd->s11+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
+#endif
+
+//if (thd->get_pio3_exit(i))
+if (thd->pio3_item_s[i] == thd->pio3_item_e[i])
 {
+	free(data);
+//	pthread_spin_unlock(&thd->pio3_spin[i]);
+//	pthread_mutex_unlock(&thd->pio3_mutex[i]);
+return NULL;
+}
+
+//while(*rp == false && *ep == false)
+//	printf("www %d %d\n",(int)thd->pio3_run[i],(int)thd->pio3_exit[i]);
+//pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
+//printf("w2\n");
+//if (thd->get_pio3_run(i))
+//{
 #ifdef pio_tp
 printf("ptp %d\n",i);
 #endif
 //  protocol->start_row_pio();
-
+#ifdef pio_tt
+gettimeofday(&ttt,NULL);
+#endif
 protocol->start_row();
 //  if (thd->send_result_set_row_pio(items,i)) //&
+
+
+thd->pio3_net[i].pkt_nr = thd->pio3_item_pkt_nr[i][thd->pio3_item_s[i]];
+
 	if (thd->pio_send(i))
   {
 printf("abort!\n");
@@ -3104,22 +3260,23 @@ return NULL;
 //???
 //protocol->end_row_pio();
 protocol->end_row();
-thd->pio3_run[i] = false;
-}
-if (thd->pio3_exit[i])
-{
-	free(data);
-//	pthread_spin_unlock(&thd->pio3_spin[i]);
-	pthread_mutex_unlock(&thd->pio3_mutex[i]);
-	return NULL;
-}
 
+#ifdef pio_tt
+gettimeofday(&ttt2,NULL);
+thd->s6+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
+#endif
 
+//thd->set_pio3_run(i, false);
+if (thd->pio3_item_s[i] == MAX_PIO_QUEUE-1)
+	thd->pio3_item_s[i] = 0;
+else
+	++thd->pio3_item_s[i];
+//}
 //pthread_spin_unlock(&thd->pio3_spin[i]);
-pthread_mutex_unlock(&thd->pio3_mutex[i]);
+//pthread_mutex_unlock(&thd->pio3_mutex[i]);
 
 
-//net_flush(&thd->pio3_net[i]);
+net_flush(&thd->pio3_net[i]);
 
 //  DBUG_RETURN(protocol->end_row());
 //pthread_mutex_lock(&thd->pio3_mutex[i]);
@@ -3132,13 +3289,12 @@ while((item = items->pop()) != 0) // free???
 }
 printf("\n");
 */
-/*
-thd->pio3_run[i] = false;
-//pthread_cond_wait(&thd->pio3_cond[i],&thd->pio3_mutex[i]);
-while(thd->pio3_run[i] == false && thd->pio3_exit == false)
+
+//thd->pio3_run[i] = false;
+//while(thd->pio3_run[i] == false && thd->pio3_exit == false)
 //	usleep(0);
-	i = i;
-*/
+//	i = i;
+
 /*
 if (thd->pio3_run[i] == false)
 {
@@ -3157,6 +3313,7 @@ if (thd->pio3_exit)
 */
 }
 
+
 }
 
 
@@ -3168,9 +3325,10 @@ THD *thd = this;
 #ifdef pio_tp
 printf("pio_send s %d\n",i);
 #endif
+
 Protocol *protocol = &thd->pio3_protocol[i];
 
-List_iterator<pio3_item_t> it(thd->pio3_item[i]);
+//List_iterator<pio3_item_t> it(thd->pio3_item[i]);
 pio3_item_t* item;
 
 
@@ -3183,11 +3341,32 @@ bool result = false;
 char buffer[MAX_FIELD_WIDTH];
 String str_buffer(buffer,sizeof(buffer),&my_charset_bin);
 
-while((item= it++))
-{
-#ifdef pio_tp
-	printf("item->pft %d\n",item->pft);
+#ifdef pio_tt
+struct timeval ttt,ttt2;
+gettimeofday(&ttt,NULL);
 #endif
+int j;
+//while((item= it++))
+for (j=0;j<pio3_itemc[i][pio3_item_s[i]];++j)
+{
+item = &pio3_item[i][j][pio3_item_s[i]];
+//s8+=item->s8;
+#ifdef pio_tp
+	//printf("item->pft %d\n",item->pft);
+#endif
+
+
+
+/*
+if (item->field != NULL)
+{
+	item->str.m_is_alloced = false;
+	item->str.set(item->buffer,sizeof(item->buffer),&item->cs);
+	item->item_value.res = item->field->val_str(&item->str);
+}
+*/
+
+
 	switch(item->pft)
 	{
 		case 0:
@@ -3207,6 +3386,7 @@ while((item= it++))
 			printf("\n");
 */
 			result = protocol->store(item->item_value.res->ptr(),item->item_value.res->length(),item->item_value.res->charset());
+		//	item->item_value.res->set(item->buffer,sizeof(item->buffer),&item->cs);
 			break;
 		}
 		case 2:
@@ -3232,12 +3412,14 @@ while((item= it++))
 		case 6:
 		{
 			result = protocol->store(item->item_value.fnr,item->decimals,&str_buffer); // buffer?
-			break;
+			str_buffer.set(buffer,sizeof(buffer),&my_charset_bin);
+		break;
 		}
 		case 7:
 		{
 			result = protocol->store(item->item_value.dnr,item->decimals,&str_buffer);
-			break;
+			str_buffer.set(buffer,sizeof(buffer),&my_charset_bin);
+		break;
 		}
 		case 8:
 		{
@@ -3254,13 +3436,17 @@ while((item= it++))
 //			String *res = item->item_value.res;
 //			result = res ? protocol->store(item->item_value.res) : protocol->store_null();
 #ifdef pio_tp
+/*
 			int j;
 			printf("---pio send string--- %d\n",i);
 			for (j=0;j<item->item_value.res->length();++j)
 				printf("%d ",(int)item->item_value.res->ptr()[j]);
 			printf("\n");
+*/
 #endif
+//printf("ll %d\n",item->item_value.res->length());
 			result = item->item_value.res ? protocol->store(item->item_value.res) : protocol->store_null();
+		//	item->item_value.res->set(item->buffer,sizeof(item->buffer),&item->cs);
 			break;
 		}
 		case 11:
@@ -3285,11 +3471,19 @@ while((item= it++))
 			break;
 		}
 	}
-	str_buffer.set(buffer,sizeof(buffer),&my_charset_bin);
+//	str_buffer.set(buffer,sizeof(buffer),&my_charset_bin);
+
+
 }
+#ifdef pio_tt
+gettimeofday(&ttt2,NULL);
+thd->s7+=(ttt2.tv_sec-ttt.tv_sec)*1000000+(ttt2.tv_usec-ttt.tv_usec);
+#endif
 //pio3_item_t* item;
+/*
 while((item = thd->pio3_item[i].pop()) != 0)
 	free(item);
+*/
 #ifdef pio_tp
 printf("pio_send f %d\n",i);
 #endif
@@ -5209,7 +5403,7 @@ printf("pio meta error\n");
 }
 
 }
-
+//printf("----\n");
 #ifdef EMBEDDED_LIBRARY                  // bootstrap file handling
     if(!mysql)
       DBUG_RETURN(false);

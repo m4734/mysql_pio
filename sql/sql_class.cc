@@ -2877,11 +2877,13 @@ thd->pio3_item_pkt_nr[i][thd->pio3_item_e[i]] = thd->net.pkt_nr++;
 //thd->pio3_items[i].
 List_iterator_fast<Item> it(items);
 Item* item;
-thd->pio3_itemc[i][thd->pio3_item_e[i]]=0;
+//thd->pio3_itemc[i][thd->pio3_item_e[i]]=0;
 
 //char buffer[MAX_FIELD_WIDTH];
 //String str_buffer(buffer, sizeof(buffer), &my_charset_bin);
 
+/*
+// old single thread
 while((item= it++))
 {
 //	thd->pio3_items[i].push_back(item->this_item());
@@ -2894,11 +2896,11 @@ pio3_item_t* item2 = &thd->pio3_item[i][thd->pio3_itemc[i][thd->pio3_item_e[i]]]
 
 item->pio3_item = item2;
 //item2->field_types = item->field_type();
-/*
-item2->decimals = item->decimals;
-item2->null_value = item->null_value;
-item2->unsigned_flag = item->unsigned_flag;
-*/
+
+//item2->decimals = item->decimals;
+//item2->null_value = item->null_value;
+//item2->unsigned_flag = item->unsigned_flag;
+
 //item2->pio_t = i;
 #ifdef pio_tt
 item2->s8 = 0;
@@ -2926,7 +2928,44 @@ thd->s8+=item2->s8;
 #endif
 ++thd->pio3_itemc[i][thd->pio3_item_e[i]];
 }
+*/
+int tn,j;
+tn = 0;
+thd->pio3_itemc[i][thd->pio3_item_e[i]] = 0;
+while((item= it++))
+{
+while((thd->pio30_queue_e[tn]+1 == thd->pio30_queue_s[tn]) || (thd->pio30_queue_e[tn] == MAX_PIO0_QUEUE-1 && thd->pio30_queue_s[tn] ==0))
+{
+	if (tn == MAX_PIO0-1)
+		tn = 0;
+	else
+		++tn;
+}
+item->pio3_item = &thd->pio3_item[i][thd->pio3_itemc[i][thd->pio3_item_e[i]]][thd->pio3_item_e[i]];
 
+thd->pio30_item[tn][thd->pio30_queue_e[tn]] = item;
+thd->pio30_i[tn][thd->pio30_queue_e[tn]] = i;
+//thd->pio30_run[tn] = true;
+thd->pio30_ready_p[tn][thd->pio30_queue_e[tn]] = &thd->pio3_ready[i][thd->pio3_itemc[i][thd->pio3_item_e[i]]][thd->pio3_item_e[i]];
+thd->pio3_ready[i][thd->pio3_itemc[i][thd->pio3_item_e[i]]][thd->pio3_item_e[i]] = false;
+
+if (thd->pio30_queue_e[tn] == MAX_PIO0_QUEUE-1)
+	thd->pio30_queue_e[tn] = 0;
+else
+	++thd->pio30_queue_e[tn];
+
+if (tn == MAX_PIO0-1)
+	tn = 0;
+else
+	++tn;
+++thd->pio3_itemc[i][thd->pio3_item_e[i]];
+}
+
+for (j=0;j<MAX_PIO0;++j)
+{
+	while(thd->pio30_queue_s[j] != thd->pio30_queue_e[j]);
+//		printf("www\n");
+}
 
 #ifdef pio_tt
 gettimeofday(&ttt2,NULL);
@@ -3070,6 +3109,20 @@ while(1)
 //	printf("dr true\n");
 //	usleep(1);
 	}
+
+	for (i=0;i<MAX_PIO0;i++)
+	{
+
+//pio30_run[i] = false;
+pio30_exit[i] = false;
+
+		pio3_data_t* data;
+		data = (pio3_data_t*)malloc(sizeof(pio3_data_t));
+		data->thd = this;
+		data->pio_t = i;
+	
+		pthread_create(&pio30_t[i],NULL,pio30_thd_pro,(void*)(data));
+	}
 /*
 	while(1)
 	{
@@ -3126,6 +3179,13 @@ printf("pio3_end s\n");
 //		pthread_mutex_destroy(&pio3_mutex[i]);
 }
 
+for (i=0;i<MAX_PIO0;++i)
+{
+	while(pio30_queue_s[i] != pio30_queue_e[i]);
+	pio30_exit[i] = true;
+	pthread_join(pio30_t[i],NULL);
+}
+
 for (i=0;i<MAX_PIO;++i)
 {
 
@@ -3148,6 +3208,27 @@ printf("pio3_end f\n");
 #endif
 }
 
+void *pio30_thd_pro(void* data)
+{
+	THD* thd = ((pio3_data_t*)data)->thd;
+	int i = ((pio3_data_t*)data)->pio_t;
+	while(1)
+	{
+		while (thd->pio30_queue_s[i] == thd->pio30_queue_e[i] && thd->pio30_exit[i] == false);
+		if (thd->pio30_exit[i])
+		{
+			free(data);
+			return NULL;
+		}
+		thd->pio30_item[i][thd->pio30_queue_s[i]]->pio_save(&thd->pio3_protocol[thd->pio30_i[i][thd->pio30_queue_s[i]]],NULL);
+		*thd->pio30_ready_p[i][thd->pio30_queue_s[i]] = true;
+//		thd->pio30_run[i] = false;
+		if (thd->pio30_queue_s[i] == MAX_PIO0_QUEUE-1)
+			thd->pio30_queue_s[i] = 0;
+		else
+			++thd->pio30_queue_s[i];
+	}
+}
 
 void *pio3_thd_pro(void* data)
 {
@@ -3347,8 +3428,15 @@ gettimeofday(&ttt,NULL);
 #endif
 int j;
 //while((item= it++))
+
 for (j=0;j<pio3_itemc[i][pio3_item_s[i]];++j)
 {
+	while(pio3_ready[i][j][pio3_item_s[i]] == false);
+}
+
+for (j=0;j<pio3_itemc[i][pio3_item_s[i]];++j)
+{
+//	while(pio3_ready[i][j][pio3_item_s[i]] == false);
 item = &pio3_item[i][j][pio3_item_s[i]];
 //s8+=item->s8;
 #ifdef pio_tp

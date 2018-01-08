@@ -186,7 +186,9 @@ enum enum_binlog_format {
 
 //cgmin
 #define MAX_PIO 2
-#define MAX_PIO_QUEUE 10
+#define MAX_PIO0 2
+#define MAX_PIO0_QUEUE 100
+#define MAX_PIO_QUEUE 100
 
 //#define pio_tp
 
@@ -228,6 +230,7 @@ struct pio3_item_t
 };
 */
 void *pio3_thd_pro(void* data);
+void *pio30_thd_pro(void* data);
 
 
 
@@ -2188,6 +2191,7 @@ String pio3_convert_buffer[MAX_PIO];
 //bool pio3_run[MAX_PIO];
 //bool pio3_exit[MAX_PIO];
 pthread_t pio3_t[MAX_PIO];
+pthread_t pio30_t[MAX_PIO0];
   struct st_mysql_data *pio3_cur_data[MAX_PIO];
 
 //protocol???
@@ -2201,6 +2205,16 @@ int pio3_ii;
 int pio3_item_pkt_nr[MAX_PIO][MAX_PIO_QUEUE];
 
 volatile bool pio3_exit[MAX_PIO];
+
+volatile bool pio30_exit[MAX_PIO0];
+//volatile bool pio30_run[MAX_PIO0];
+volatile int pio30_queue_s[MAX_PIO0],pio30_queue_e[MAX_PIO0];
+int pio30_i[MAX_PIO0][MAX_PIO0_QUEUE];
+
+Item* pio30_item[MAX_PIO0][MAX_PIO0_QUEUE];
+volatile bool pio3_ready[MAX_PIO][20][MAX_PIO_QUEUE];
+volatile bool* pio30_ready_p[MAX_PIO0][MAX_PIO0_QUEUE];
+
 /*
 int get_pio3_item_s(int i)
 {
@@ -2261,6 +2275,12 @@ pio3_item_e[i] = 0;
 			pio3_item[i][j][k].str.set(pio3_item[i][j][k].buffer,sizeof(pio3_item[i][j][k].buffer),&pio3_item[i][j][k].cs);
 			}
 		}
+	}
+
+	for (i=0;i<MAX_PIO0;i++)
+	{
+		pio30_queue_s[i] = 0;
+		pio30_queue_e[i] = 0;
 	}
 }
 
